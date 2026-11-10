@@ -1,8 +1,16 @@
 {
-  "version": "1.3.0",
+  "version": "1.3.1",
   "date": "2026-11-10",
   "updateUrl": "https://chenweihanfool.github.io/coord-transfer/latest.json",
   "changelog": [
+    {
+      "version": "1.3.1",
+      "date": "2026-11-10",
+      "items": [
+        "修正：分布圖與段籍圖錯位約 850 公尺。段籍圖實際為各段的地籍坐標系（多數為 TWD67），改以控制點的 TWD67 側坐標繪製與判斷地段",
+        "地段檢查改用輸入（或反算輸出）的地籍坐標判斷，不再受所選參數組影響"
+      ]
+    },
     {
       "version": "1.3.0",
       "date": "2026-11-10",

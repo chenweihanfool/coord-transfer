@@ -522,7 +522,7 @@ function reportHtml(res, autoPrint) {
   h += kpiHtml([['轉換點數', res.items.length.toLocaleString(), inLab + ' → ' + outLab], ['已知控制點', String(m.nctrl), '自由度 ' + m.df],
     ['單位權中誤差 σ₀', m.df > 1 ? fx(m.sd0 * 1000, 1) + ' <small>mm</small>' : '—', m.df > 1 ? '控制點擬合精度' : '自由度不足'],
     ['範圍外（外插）', String(ex.length), ex.length ? '請特別檢核' : '全部在控制範圍內']]);
-  h += `<h2>點位分布圖</h2><p class="s">TWD97 坐標，底圖為段籍圖（灰底為所選參數組的適用地段）。藍色三角形為已知控制點、橙色圓點為轉換點（空心者在控制範圍外）；灰色箭頭為控制點殘差（已放大）。最大殘差 ${mm(maxv)} mm。</p>` + mapSvg(Object.assign(resultMapData(res), { P: VIZ_LIGHT, W: 940 }));
+  h += `<h2>點位分布圖</h2><p class="s">地籍坐標（TWD67 側），底圖為段籍圖（灰底為所選參數組的適用地段）。藍色三角形為已知控制點、橙色圓點為轉換點（空心者在控制範圍外）；灰色箭頭為控制點殘差（已放大）。最大殘差 ${mm(maxv)} mm。</p>` + mapSvg(Object.assign(resultMapData(res), { P: VIZ_LIGHT, W: 940 }));
   if (m.warnings.length) h += `<p class="s warn">${m.warnings.map(esc).join('<br>')}</p>`;
   h += modelSection(m, res.run.fitRows, fitIn, fitOut);
   h += `<h2>轉換成果</h2><table><thead><tr><th>#</th><th>點名</th><th>N（${inLab}）</th><th>E（${inLab}）</th><th>N（${outLab}）</th><th>E（${outLab}）</th><th>配置ΔN mm</th><th>配置ΔE mm</th><th>最近控制點</th><th>距離 m</th><th>備註</th></tr></thead><tbody>` +
@@ -581,7 +581,7 @@ function renderEditor() {
       <textarea id="edAdd" rows="5" placeholder="HB149  2704461.069  215163.152  2704666.323  214333.842"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn pri sm" id="edAddBtn">加入</button><span class="small muted" id="edAddInfo"></span></div>
     </details></div></div>
-  <div class="card"><div class="hd"><h2>點位分布與殘差</h2><span class="small muted">底圖為段籍圖（TWD97），灰底為本組適用地段；箭頭與長條會隨控制點修改即時更新</span></div><div class="bd"><div id="edMap"></div><div id="edBar" style="margin-top:14px"></div></div></div>
+  <div class="card"><div class="hd"><h2>點位分布與殘差</h2><span class="small muted">底圖為段籍圖，點位以地籍坐標（TWD67 側）繪製；灰底為本組適用地段；箭頭與長條會隨控制點修改即時更新</span></div><div class="bd"><div id="edMap"></div><div id="edBar" style="margin-top:14px"></div></div></div>
   <div class="card"><div class="hd"><h2>地段細分分析</h2><span class="small muted">評估能否把本組拆成「一段一參數」，以及該在哪裡補點</span><div class="spacer"></div>
     <label class="small" style="display:flex;align-items:center;gap:6px">鄰近範圍 <input type="number" id="edBuf" value="${ED.buf || 300}" min="0" step="50" style="width:90px"> 公尺</label></div>
     <div class="bd" id="edSecAna"></div></div>
@@ -625,13 +625,13 @@ function analyzeSections(s, buf) {
   const vOf = new Map(full ? full.residuals.map(r => [r.p._i, Math.hypot(r.vn, r.ve)]) : []);
   // 控制點所在地段
   const where = new Map(); let outside = 0;
-  on.forEach(x => { const at = secsAt(+x.p.n2, +x.p.e2); if (!at.length) outside++; new Set(at.map(f => f.no)).forEach(no => where.set(no, (where.get(no) || 0) + 1)); });
+  on.forEach(x => { const at = secsAt(+x.p.n1, +x.p.e1); if (!at.length) outside++; new Set(at.map(f => f.no)).forEach(no => where.set(no, (where.get(no) || 0) + 1)); });
   const cand = Array.from(new Set(setSecNos(s).concat(Array.from(where.keys())))).filter(no => SECS.some(f => f.no === no));
   const rows = cand.map(no => {
     const feats = SECS.filter(f => f.no === no);
     const inside = [], near = [];
     on.forEach(x => {
-      const e = +x.p.e2, n = +x.p.n2, d = Math.min(...feats.map(f => distToFeat(f, e, n)));
+      const e = +x.p.e1, n = +x.p.n1, d = Math.min(...feats.map(f => distToFeat(f, e, n)));
       if (d === 0) inside.push(x); else if (d <= buf) near.push(x);
     });
     const use = inside.concat(near);
@@ -642,7 +642,7 @@ function analyzeSections(s, buf) {
     for (let a = 0; a < G; a++) for (let b = 0; b < G; b++) { const e = x0 + (x1 - x0) * (a + .5) / G, n = y0 + (y1 - y0) * (b + .5) / G; if (feats.some(f => pipRings(f.rings, e, n))) samp.push([e, n]); }
     let cov = 0, dir = '';
     if (use.length >= 3 && samp.length) {
-      const chk = E.geomChecker(use.map(x => ({ n: +x.p.n2, e: +x.p.e2, name: x.p.name })));
+      const chk = E.geomChecker(use.map(x => ({ n: +x.p.n1, e: +x.p.e1, name: x.p.name })));
       const out = samp.filter(([e, n]) => !chk(n, e).inside);
       cov = 1 - out.length / samp.length;
       if (out.length) {
@@ -680,7 +680,7 @@ function renderSecAnalysis() {
     <td class="num">${r.use.length >= 3 ? Math.round(r.cov * 100) + '%' : '—'}</td><td class="num">${r.sdSub != null ? '±' + cm(r.sdSub) + ' cm' : '—'}</td><td class="num">${r.rmsComb != null ? '±' + cm(r.rmsComb) + ' cm' : '—'}</td>
     <td style="white-space:normal;min-width:220px"><span class="chip ${cls[r.lv]}">${ic[r.lv]}</span> ${esc(r.text)}</td>
     <td><button class="btn sm" data-sf="${r.no}">在圖上看</button> <button class="btn sm${r.use.length >= 3 ? '' : '" disabled title="點數不足'}" data-sn="${i}">建立此段參數組</button></td></tr>`).join('') + `</tbody></table></div>
-  <p class="small muted" style="margin:10px 0 0">段內＝控制點（TWD97）位於段界內；鄰近＝段界外 ${ED.buf == null ? 300 : ED.buf} 公尺內，細分時建議一併納入以免邊緣外插。涵蓋率＝段內面積落在「段內＋鄰近」控制點凸包內的比例。單獨解算＝只用這些點做 6 參數的點位誤差（√2·σ₀）；合併參數＝同一批點在目前整組參數下的殘差均方根。</p>`;
+  <p class="small muted" style="margin:10px 0 0">段內＝控制點（地籍坐標）位於段界內；鄰近＝段界外 ${ED.buf == null ? 300 : ED.buf} 公尺內，細分時建議一併納入以免邊緣外插。涵蓋率＝段內面積落在「段內＋鄰近」控制點凸包內的比例。單獨解算＝只用這些點做 6 參數的點位誤差（√2·σ₀）；合併參數＝同一批點在目前整組參數下的殘差均方根。</p>`;
   box.querySelectorAll('[data-sf]').forEach(b => b.onclick = () => { ED.focus = +b.dataset.sf; recalcEditor(); $('#edMap').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   box.querySelectorAll('[data-sn]').forEach(b => b.onclick = async () => {
     if (!(await leaveEditor())) return;
@@ -729,7 +729,7 @@ function recalcEditor() {
     });
     const maxv = Math.max(0, ...m.residuals.map(r => Math.hypot(r.vn, r.ve)));
     const resByI = new Map(m.residuals.map(r => [r.p._i, r]));
-    const mapC = s.points.map((p, i) => { const r = resByI.get(i); if (r) return { name: p.name, n: +p.n2, e: +p.e2, vn: r.vn, ve: r.ve, on: true, bad: m.df > 1 && Math.hypot(r.vn, r.ve) > thr }; return { name: p.name, n: +p.n2, e: +p.e2, on: p.on !== false }; });
+    const mapC = s.points.map((p, i) => { const r = resByI.get(i); if (r) return { name: p.name, n: +p.n1, e: +p.e1, vn: r.vn, ve: r.ve, on: true, bad: m.df > 1 && Math.hypot(r.vn, r.ve) > thr }; return { name: p.name, n: +p.n1, e: +p.e1, on: p.on !== false }; });
     const fF = ED.focus ? SECS.filter(f => f.no === ED.focus) : [], bufM = ED.buf == null ? 300 : ED.buf;
     const focusPts = ED.focus ? mapC.filter(c => Math.min(...fF.map(f => distToFeat(f, c.e, c.n))) <= bufM) : null;
     $('#edMap').innerHTML = mapSvg({ ctrl: mapC, hi: ED.focus ? [ED.focus] : setSecNos(s), fitHi: true, focusPts }) + (ED.focus ? `<div class="small" style="margin-top:6px">正在顯示：<b>${esc(secLabel(ED.focus))}</b> <button class="btn sm" id="edFocusOff">回到整組</button></div>` : '');
@@ -969,7 +969,7 @@ function bindAboutPage() {
   $('#updBadge').onclick = () => showPage('pgAbout');
 }
 
-/* ---------------- 段籍圖（KC02 苑裡、KC03 通霄；TWD97，內嵌於參數庫） ---------------- */
+/* ---------------- 段籍圖（KC02 苑裡、KC03 通霄；坐標為各段地籍坐標系，內嵌於參數庫） ---------------- */
 const SECS = (BUILTIN.bounds || []).map(f => {
   const rings = f.rings.map(fl => { const r = []; let x = fl[0], y = fl[1]; r.push([x, y]); for (let i = 2; i < fl.length; i += 2) { x += fl[i]; y += fl[i + 1]; r.push([x, y]); } return r; });
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -998,7 +998,7 @@ function distToFeat(f, e, n) {
   } });
   return best;
 }
-// 依 TWD97 坐標找出點所在段號，並檢查是否在所選參數組的適用段內
+// 依地籍坐標（TWD67 側）找出點所在段號，並檢查是否在所選參數組的適用段內
 function secCheck(set, n97, e97) {
   const at = secsAt(n97, e97), nos = setSecNos(set);
   const inSet = !nos.length || !at.length || at.some(f => nos.includes(f.no));
@@ -1143,14 +1143,15 @@ function barSvg({ items, thr, W = 900, P = VIZ_CSS, big = false }) {
   return o.join('');
 }
 const residThr = m => Math.max(3 * (m.sd0 || 0), 0.03);
-// 所有分布圖一律以 TWD97 繪製（與段籍圖同一坐標系）
+// 分布圖一律以「地籍坐標」（.inp 第一組，TWD67 側）繪製：段籍圖 shapefile 雖標示 TWD97，
+// 實際坐標為各段的地籍坐標系（未改算的段為 TWD67、已為 97 的段兩組坐標相同），經控制點逐段檢核確認。
 function resultMapData(res) {
   const sw = res.ctx.dir === 'rev' && !res.run.iter, fwd = res.ctx.dir === 'fwd';
-  const ctrl = res.model.residuals.map(r => ({ name: r.name, n: sw ? r.p.n1 : r.p.n2, e: sw ? r.p.e1 : r.p.e2, vn: r.vn, ve: r.ve }));
-  return { ctrl, targets: res.items.map(it => ({ name: it.name, n: fwd ? it.n : it.inN, e: fwd ? it.e : it.inE, extrap: it.extrap })), hi: setSecNos(res.ctx.set) };
+  const ctrl = res.model.residuals.map(r => ({ name: r.name, n: sw ? r.p.n2 : r.p.n1, e: sw ? r.p.e2 : r.p.e1, vn: r.vn, ve: r.ve }));
+  return { ctrl, targets: res.items.map(it => Object.assign({ name: it.name, extrap: it.extrap }, ptCad(res, it))), hi: setSecNos(res.ctx.set) };
 }
-const pt97 = (res, it) => res.ctx.dir === 'fwd' ? { n: it.n, e: it.e } : { n: it.inN, e: it.inE };
-function outsideSet(res) { const set = res.ctx.set; if (!set || !setSecNos(set).length || !SECS.length) return []; return res.items.filter(it => { const q = pt97(res, it); return !secCheck(set, q.n, q.e).inSet; }); }
+const ptCad = (res, it) => res.ctx.dir === 'fwd' ? { n: it.inN, e: it.inE } : { n: it.n, e: it.e };
+function outsideSet(res) { const set = res.ctx.set; if (!set || !setSecNos(set).length || !SECS.length) return []; return res.items.filter(it => { const q = ptCad(res, it); return !secCheck(set, q.n, q.e).inSet; }); }
 function kpiHtml(tiles) {
   return `<div class="kpis">${tiles.map(([lab, val, sub]) => `<div class="kpi"><div class="kl">${esc(lab)}</div><div class="kv">${val}</div>${sub ? `<div class="ks">${esc(sub)}</div>` : ''}</div>`).join('')}</div>`;
 }
@@ -1212,9 +1213,9 @@ function simpleSingle() {
     <div class="s-res"><div class="k">N</div><div class="v" id="sOutN">${fx(it.n, d)}</div><button data-copy="${fx(it.n, d)}">複製</button>
     <div class="k">E</div><div class="v" id="sOutE">${fx(it.e, d)}</div><button data-copy="${fx(it.e, d)}">複製</button></div>` +
     (it.extrap ? sMsg('warn', '⚠ 這個點在已知控制點的範圍外面，誤差可能比較大，請小心使用。') : sMsg('ok', '✔ 轉換完成。')) +
-    (() => { const q = pt97(res, it), k = secCheck(c.set, q.n, q.e); if (k.inSet) return k.at.length ? sMsg('info', `這個點位在「${esc(secLabel(k.at[0].no))}」。`) : '';
+    (() => { const q = ptCad(res, it), k = secCheck(c.set, q.n, q.e); if (k.inSet) return k.at.length ? sMsg('info', `這個點位在「${esc(secLabel(k.at[0].no))}」。`) : '';
       return sMsg('bad', `⚠ 這個點位在「${esc(secLabel(k.at[0].no))}」，不在你選的「${esc(c.set.name)}」裡面。請確認地段有沒有選錯。` + (k.alt ? `<br><button class="s-btn alt" style="margin-top:10px" data-alt="${esc(k.alt.id)}">改用「${esc(k.alt.name)}」重新轉換</button>` : '')); })() +
-    `<p style="margin:16px 0 6px;font-size:19px">你的點（橙色）與已知控制點（藍色三角形）的位置：</p>` + mapSvg({ ctrl: resultMapData(res).ctrl, targets: [Object.assign({ name: '你的點', extrap: it.extrap }, pt97(res, it))], big: true, targetLabel: '你的點', hi: setSecNos(c.set) }) +
+    `<p style="margin:16px 0 6px;font-size:19px">你的點（橙色）與已知控制點（藍色三角形）的位置：</p>` + mapSvg({ ctrl: resultMapData(res).ctrl, targets: [Object.assign({ name: '你的點', extrap: it.extrap }, ptCad(res, it))], big: true, targetLabel: '你的點', hi: setSecNos(c.set) }) +
     `<div class="s-actions"><button class="s-btn alt" id="sPrint">🖨 列印轉換報告</button><button class="s-btn alt" id="sAgain">再轉換一個點</button></div>`);
   $$('#sRes [data-copy]').forEach(b => b.onclick = () => navigator.clipboard.writeText(b.dataset.copy).then(() => { b.textContent = '已複製 ✓'; setTimeout(() => b.textContent = '複製', 1500); }));
   $('#sPrint').onclick = simplePrint;
@@ -1345,7 +1346,7 @@ function renderSimpleManage() {
   $('#smSum').innerHTML = !m ? sMsg('bad', `「${esc(set.name)}」目前可用的已知點不夠，無法計算。至少需要 ${set.npar === 4 ? 2 : 3} 個點。`)
     : sMsg(judge && nBad ? 'warn' : 'info', `「${esc(set.name)}」共有 ${SMG.pts.length} 個已知點，使用中 ${nOn} 個。` +
       (judge ? `整體誤差約 ±${cm(A.clean.sd0)} 公分${nBad ? '（不含偏差較大的點）' : ''}。${nBad ? `<br>⚠ 有 ${nBad} 個點和其他點不吻合，請檢查（表中紅字）。` : '<br>✓ 所有使用中的點都吻合良好。'}` : '<br>已知點太少，無法判斷好壞，成果僅供參考。'));
-  $('#smMap').innerHTML = mapSvg({ ctrl: SMG.pts.map((p, i) => Object.assign({ name: p.name, n: +p.n2, e: +p.e2, on: p.on !== false, bad: !!(dev[i] && dev[i].bad) }, p.on !== false && dev[i] && dev[i].r ? { vn: dev[i].r.vn, ve: dev[i].r.ve } : {})), big: true, hi: setSecNos(set), fitHi: true }) +
+  $('#smMap').innerHTML = mapSvg({ ctrl: SMG.pts.map((p, i) => Object.assign({ name: p.name, n: +p.n1, e: +p.e1, on: p.on !== false, bad: !!(dev[i] && dev[i].bad) }, p.on !== false && dev[i] && dev[i].r ? { vn: dev[i].r.vn, ve: dev[i].r.ve } : {})), big: true, hi: setSecNos(set), fitHi: true }) +
     `<p style="margin:6px 0 0;color:var(--ink3);font-size:16px">灰色箭頭表示每個點的偏差方向與大小（已放大）；空心三角形是停用的點。</p>`;
   const rows = SMG.pts.map((p, i) => ({ p, i, d: dev[i] })).sort((a, b) => (b.d ? b.d.v : 0) - (a.d ? a.d.v : 0));
   $('#smTbl').innerHTML = `<table class="s-pt"><thead><tr><th>點名</th><th>偏差</th><th>狀態</th><th></th></tr></thead><tbody>` + rows.map(({ p, i, d }) => {
