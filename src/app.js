@@ -431,6 +431,7 @@ function renderResult(res) {
       res.items.slice(0, lim).map((it, i) => `<tr${it.extrap ? ' class="hl"' : ''}><td class="muted">${i + 1}</td><td>${esc(it.name)}</td><td class="num">${fx(it.inN, 3)}</td><td class="num">${fx(it.inE, 3)}</td><td class="num"><b>${fx(it.n, d)}</b></td><td class="num"><b>${fx(it.e, d)}</b></td><td class="num">${mm(it.dn)}</td><td class="num">${mm(it.de)}</td><td>${esc(it.nearestName)} <span class="muted">${fx(it.nearest, 0)} m</span></td><td>${it.extrap ? '<span class="chip warn">外插</span>' : ''}</td></tr>`).join('') +
       `</tbody></table></div>` + (lim < res.items.length ? `<div style="margin-top:8px"><button class="btn sm" id="btnShowAll">顯示全部 ${res.items.length.toLocaleString()} 點</button> <span class="muted small">（下載檔案已包含全部成果）</span></div>` : '');
   }
+  html += `<details open style="margin-top:14px"><summary>點位分布圖</summary><div style="margin-top:8px">${mapSvg(resultMapData(res))}</div></details>`;
   if (m.warnings.length) html += `<div class="note warn" style="margin-top:12px">${m.warnings.map(esc).join('<br>')}</div>`;
   if (res.override) html += `<div class="note" style="margin-top:12px">本次使用 .inp 檔內的控制點計算。</div>`;
   if (res.run.iter) html += `<div class="note" style="margin-top:12px">反算方式：迭代反解（與正算互逆）。原程式格式檔案僅適用「反向擬合」。</div>`;
@@ -483,6 +484,8 @@ function modelSection(m, rows, inLab, outLab) {
   const parNames = m.npar === 4 ? ['a', 'b', 'c', 'd'] : ['a₁', 'a₂', 'a₃', 'b₁', 'b₂', 'b₃'];
   let h = `<h2>控制點與殘差</h2><table><thead><tr><th>點名</th><th>N（${inLab}）</th><th>E（${inLab}）</th><th>N（${outLab}）</th><th>E（${outLab}）</th><th>vN mm</th><th>vE mm</th><th>|v| mm</th></tr></thead><tbody>` +
     ctrl.map(p => { const r = m.residuals.find(x => x.p === p) || resid.get(p); return `<tr><td class="l">${esc(p.name)}</td><td>${fx(p.n1, 3)}</td><td>${fx(p.e1, 3)}</td><td>${fx(p.n2, 3)}</td><td>${fx(p.e2, 3)}</td><td>${r ? mm(r.vn) : ''}</td><td>${r ? mm(r.ve) : ''}</td><td>${r ? mm(Math.hypot(r.vn, r.ve)) : ''}</td></tr>`; }).join('') + `</tbody></table>`;
+  if (m.residuals.length > 1) h += `<p class="s">殘差大小（由大到小；門檻線＝max(3σ₀, 30 mm)，超過者以紅色與 ⚠ 標示）</p>` +
+    barSvg({ items: m.residuals.map(r => ({ name: r.name, v: Math.hypot(r.vn, r.ve) })), thr: m.df > 1 ? residThr(m) : 0, P: VIZ_LIGHT, W: 940 });
   h += `<h2>轉換參數</h2><p class="s">模型：${m.npar === 4 ? 'Helmert 4 參數 N = a·dN + b·dE + c + N₀，E = a·dE − b·dN + d + E₀' : '仿射 6 參數 N = a₁·dN + a₂·dE + a₃ + N₀，E = b₁·dN + b₂·dE + b₃ + E₀'}；dN = N − N₀，dE = E − E₀，N₀ = ${fx(m.nc0, 3)}，E₀ = ${fx(m.ec0, 3)}</p>
     <table><thead><tr><th>參數</th><th>值</th><th>中誤差 σ₀√Qᵢᵢ</th></tr></thead><tbody>${m.X.map((x, i) => `<tr><td class="l">${parNames[i]}（A(${i + 1})）</td><td>${x.toFixed(11)}</td><td>${m.df > 1 ? m.sig[i].toExponential(4) : '—'}</td></tr>`).join('')}</tbody></table>
     <p class="s">控制點 ${m.nctrl} 點，[vv] = ${m.vv.toFixed(6)} m²，自由度 ${m.df}，單位權中誤差 σ₀ = ${m.df > 1 ? fx(m.sd0, 4) + ' m' : '—（自由度不足）'}</p>`;
@@ -508,12 +511,17 @@ function reportHtml(res, autoPrint) {
   const method = c.dir === 'fwd' ? '正算' : (res.run.iter ? '反算（迭代反解正算模型）' : '反算（交換坐標組重新擬合，同原程式）');
   const css = `body{font:13px/1.55 "Microsoft JhengHei","Noto Sans TC",sans-serif;color:#1d2320;margin:28px;max-width:1000px}h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:22px 0 6px;border-bottom:2px solid #1f6f5c;padding-bottom:3px}
     table{border-collapse:collapse;width:100%;font-size:12px;margin:4px 0}th,td{border:1px solid #c9cec7;padding:3px 7px;text-align:right;font-family:Consolas,monospace;white-space:nowrap}th{background:#eef1ed;font-family:inherit;text-align:center}td.l{text-align:left;font-family:inherit}
-    .s{color:#4c5650;margin:4px 0}.meta td{text-align:left;font-family:inherit;border:0;padding:2px 12px 2px 0}.warn{background:#fdf3e1}.foot{margin-top:24px;color:#7b857f;font-size:11px}@media print{body{margin:10mm}h2{break-after:avoid}tr{break-inside:avoid}}`;
+    .s{color:#4c5650;margin:4px 0}.meta td{text-align:left;font-family:inherit;border:0;padding:2px 12px 2px 0}.warn{background:#fdf3e1}.foot{margin-top:24px;color:#7b857f;font-size:11px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.kpi{border:1px solid #dde1dc;border-radius:8px;padding:8px 12px}.kl{color:#4c5650;font-size:12px}.kv{font-size:22px;font-weight:700;font-family:Consolas,monospace}.ks{color:#7b857f;font-size:11px}svg{margin:6px 0}@media print{body{margin:10mm}h2{break-after:avoid}tr{break-inside:avoid}}`;
   let h = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>坐標轉換報告 ${esc(set ? set.name : '')}</title><style>${css}</style></head><body>
     <h1>坐標轉換報告</h1><table class="meta"><tr><td>參數組</td><td><b>${esc(set ? set.name : '（.inp 檔內控制點）')}</b>${set && set.sections.length ? '（適用 ' + esc(set.sections.join('、')) + ' 段）' : ''}${set && set.origin !== 'builtin' ? '　［已自訂修改］' : ''}</td></tr>
     <tr><td>轉換方向</td><td>${inLab} → ${outLab}　${method}</td></tr><tr><td>模型</td><td>${m.npar === 4 ? 'Helmert 4 參數' : '仿射 6 參數'}${c.colloc && m.colloc ? ' + 最小二乘配置' : '（未配置）'}${c.compat ? '，與原程式逐位相容' : ''}</td></tr>
     <tr><td>點數</td><td>${res.items.length} 點${ex.length ? `，其中 <b>${ex.length}</b> 點位於控制點範圍外（外插）` : ''}</td></tr>
     <tr><td>計算時間</td><td>${esc(res.time)}　坐標轉換工具 v${esc(VER.version)}（演算法：國土測繪中心 TRANSFN1）</td></tr></table>`;
+  const maxv = Math.max(0, ...m.residuals.map(r => Math.hypot(r.vn, r.ve)));
+  h += kpiHtml([['轉換點數', res.items.length.toLocaleString(), inLab + ' → ' + outLab], ['已知控制點', String(m.nctrl), '自由度 ' + m.df],
+    ['單位權中誤差 σ₀', m.df > 1 ? fx(m.sd0 * 1000, 1) + ' <small>mm</small>' : '—', m.df > 1 ? '控制點擬合精度' : '自由度不足'],
+    ['範圍外（外插）', String(ex.length), ex.length ? '請特別檢核' : '全部在控制範圍內']]);
+  h += `<h2>點位分布圖</h2><p class="s">藍色三角形為已知控制點、橙色圓點為轉換點（空心者在控制範圍外）；灰色箭頭為控制點殘差（已放大）。最大殘差 ${mm(maxv)} mm。</p>` + mapSvg(Object.assign(resultMapData(res), { P: VIZ_LIGHT, W: 940 }));
   if (m.warnings.length) h += `<p class="s warn">${m.warnings.map(esc).join('<br>')}</p>`;
   h += modelSection(m, res.run.fitRows, fitIn, fitOut);
   h += `<h2>轉換成果</h2><table><thead><tr><th>#</th><th>點名</th><th>N（${inLab}）</th><th>E（${inLab}）</th><th>N（${outLab}）</th><th>E（${outLab}）</th><th>配置ΔN mm</th><th>配置ΔE mm</th><th>最近控制點</th><th>距離 m</th><th>備註</th></tr></thead><tbody>` +
@@ -572,6 +580,7 @@ function renderEditor() {
       <textarea id="edAdd" rows="5" placeholder="HB149  2704461.069  215163.152  2704666.323  214333.842"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn pri sm" id="edAddBtn">加入</button><span class="small muted" id="edAddInfo"></span></div>
     </details></div></div>
+  <div class="card"><div class="hd"><h2>點位分布與殘差</h2><span class="small muted">箭頭與長條會隨控制點修改即時更新</span></div><div class="bd"><div id="edMap"></div><div id="edBar" style="margin-top:14px"></div></div></div>
   <div class="card"><div class="hd"><h2>版本紀錄</h2><div class="spacer"></div>
     ${s.origin === 'modified' ? '<button class="btn sm danger" id="edRevert">還原為內建版本</button>' : ''}
     ${s.origin === 'user' ? '<button class="btn sm danger" id="edDelete">刪除此參數組</button>' : ''}
@@ -639,6 +648,10 @@ function recalcEditor() {
       tr.classList.toggle('hl', m.df > 1 && v > thr);
     });
     const maxv = Math.max(0, ...m.residuals.map(r => Math.hypot(r.vn, r.ve)));
+    const resByI = new Map(m.residuals.map(r => [r.p._i, r]));
+    const mapC = s.points.map((p, i) => { const r = resByI.get(i); if (r) return { name: p.name, n: +p.n1, e: +p.e1, vn: r.vn, ve: r.ve, on: true, bad: m.df > 1 && Math.hypot(r.vn, r.ve) > thr }; return { name: p.name, n: +p.n1, e: +p.e1, on: p.on !== false }; });
+    $('#edMap').innerHTML = mapSvg({ ctrl: mapC });
+    $('#edBar').innerHTML = m.residuals.length > 1 ? `<div class="small muted" style="margin-bottom:4px">殘差大小（由大到小，紅色＝超過門檻 max(3σ₀, 30 mm)）</div>` + barSvg({ items: m.residuals.map(r => ({ name: r.name, v: Math.hypot(r.vn, r.ve) })), thr: m.df > 1 ? thr : 0 }) : '';
     st.innerHTML = `啟用 ${m.nctrl}/${s.points.length} 點 · 自由度 ${m.df} · σ₀ ${m.df > 1 ? fx(m.sd0 * 1000, 1) + ' mm' : '—'} · 最大殘差 ${mm(maxv)} mm` + (m.warnings.length ? ` <span class="chip warn">${esc(m.warnings[0])}</span>` : '');
   } catch (e) { st.innerHTML = `<span class="chip bad">${esc(e.message)}</span>`; }
 }
@@ -873,6 +886,124 @@ function bindAboutPage() {
   $('#updBadge').onclick = () => showPage('pgAbout');
 }
 
+/* ---------------- 視覺化（點位分布圖、殘差長條圖） ---------------- */
+// 色彩：類別色 1（藍）＝已知控制點、類別色 2（橙）＝待轉換點；已用 dataviz 驗證器於淺/深色底檢核通過
+const VIZ_LIGHT = { c1: '#2a78d6', c2: '#eb6834', ink: '#1d2320', ink2: '#4c5650', ink3: '#7b857f', grid: '#dde1dc', surf: '#ffffff', bad: '#d03b3b' };
+const VIZ_CSS = { c1: 'var(--viz-c1)', c2: 'var(--viz-c2)', ink: 'var(--ink)', ink2: 'var(--ink2)', ink3: 'var(--ink3)', grid: 'var(--line)', surf: 'var(--panel)', bad: 'var(--viz-bad)' };
+const niceNum = x => { if (!(x > 0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(x))), f = x / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; };
+const cm = v => (v * 100).toFixed(1);
+
+/** 點位分布圖：ctrl [{name,n,e,vn,ve,on}]、targets [{name,n,e,extrap}] */
+function mapSvg({ ctrl = [], targets = [], W, P = VIZ_CSS, big = false, targetLabel = '待轉換點' }) {
+  W = W || (big ? 720 : 900);
+  const all = ctrl.concat(targets).filter(p => isFinite(p.n) && isFinite(p.e));
+  if (!all.length) return '';
+  const fs = big ? 15 : 12;
+  let nmin = Infinity, nmax = -Infinity, emin = Infinity, emax = -Infinity;
+  all.forEach(p => { nmin = Math.min(nmin, p.n); nmax = Math.max(nmax, p.n); emin = Math.min(emin, p.e); emax = Math.max(emax, p.e); });
+  const dx = Math.max(emax - emin, 60) * 1.16, dy = Math.max(nmax - nmin, 60) * 1.16;
+  const ec = (emin + emax) / 2, nc = (nmin + nmax) / 2;
+  const legH = big ? 44 : 36, padB = big ? 40 : 34, plotW = W - 24;
+  const plotH = Math.max(big ? 300 : 260, Math.min(big ? 620 : 520, plotW * dy / dx));
+  const s = Math.min(plotW / dx, plotH / dy), H = legH + plotH + padB;
+  const X = e => 12 + plotW / 2 + (e - ec) * s, Y = n => legH + plotH / 2 - (n - nc) * s;
+  const o = [];
+  o.push(`<svg viewBox="0 0 ${W} ${H.toFixed(0)}" width="100%" style="max-width:${W}px;display:block;font-family:inherit" role="img" aria-label="點位分布圖">`);
+  o.push(`<rect x="12" y="${legH}" width="${plotW}" height="${plotH.toFixed(1)}" fill="none" stroke="${P.grid}" stroke-width="1"/>`);
+  // 控制範圍（凸包）
+  const on = ctrl.filter(c => c.on !== false);
+  if (on.length >= 3) {
+    const h = E.hull(on);
+    o.push(`<polygon points="${h.map(q => X(q[0]).toFixed(1) + ',' + Y(q[1]).toFixed(1)).join(' ')}" fill="${P.c1}" fill-opacity="0.08" stroke="${P.c1}" stroke-opacity="0.45" stroke-width="1"><title>已知控制點涵蓋範圍：範圍內的點轉換最可靠</title></polygon>`);
+  }
+  // 殘差箭頭
+  const vs = on.filter(c => isFinite(c.vn)).map(c => Math.hypot(c.vn, c.ve));
+  const maxv = vs.length ? Math.max(...vs) : 0;
+  let k = 0;
+  if (maxv > 0) k = niceNum((0.09 * Math.min(plotW, plotH)) / (maxv * s));
+  const arrow = (x1, y1, x2, y2, col, w = 1.6) => {
+    const a = Math.atan2(y2 - y1, x2 - x1), L = Math.hypot(x2 - x1, y2 - y1), hl = Math.min(7, L * 0.45);
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>` +
+      (L > 3 ? `<path d="M${x2.toFixed(1)},${y2.toFixed(1)} L${(x2 - hl * Math.cos(a - 0.45)).toFixed(1)},${(y2 - hl * Math.sin(a - 0.45)).toFixed(1)} M${x2.toFixed(1)},${y2.toFixed(1)} L${(x2 - hl * Math.cos(a + 0.45)).toFixed(1)},${(y2 - hl * Math.sin(a + 0.45)).toFixed(1)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" fill="none"/>` : '');
+  };
+  if (k) on.forEach(c => { if (!isFinite(c.vn)) return; const x = X(c.e), y = Y(c.n); o.push(arrow(x, y, x + c.ve * k * s, y - c.vn * k * s, P.ink2)); });
+  // 待轉換點
+  const many = targets.length > 400, r = many ? 2.2 : big ? 6 : 4.5;
+  targets.forEach(t => {
+    const x = X(t.e).toFixed(1), y = Y(t.n).toFixed(1), tt = `<title>${esc(t.name)}${t.extrap ? '（範圍外）' : ''}\nN ${fx(t.n, 3)}　E ${fx(t.e, 3)}</title>`;
+    o.push(t.extrap ? `<circle cx="${x}" cy="${y}" r="${r}" fill="${P.surf}" stroke="${P.c2}" stroke-width="${many ? 1.2 : 2}">${tt}</circle>`
+      : `<circle cx="${x}" cy="${y}" r="${r}" fill="${P.c2}"${many ? '' : ` stroke="${P.surf}" stroke-width="2"`}>${tt}</circle>`);
+  });
+  // 已知控制點（三角形）
+  const tri = (x, y, sz) => `M${x.toFixed(1)},${(y - sz).toFixed(1)} L${(x + sz * 0.9).toFixed(1)},${(y + sz * 0.6).toFixed(1)} L${(x - sz * 0.9).toFixed(1)},${(y + sz * 0.6).toFixed(1)}Z`;
+  const tsz = big ? 9 : 7;
+  ctrl.forEach(c => {
+    const x = X(c.e), y = Y(c.n), off = c.on === false;
+    const tt = `<title>已知點 ${esc(c.name)}${off ? '（不使用）' : ''}${isFinite(c.vn) ? `\n殘差 ${mm(Math.hypot(c.vn, c.ve))} mm（N ${mm(c.vn)}、E ${mm(c.ve)}）` : ''}</title>`;
+    o.push(`<path d="${tri(x, y, c.bad ? tsz + 2 : tsz)}" fill="${off ? P.surf : c.bad ? P.bad : P.c1}" stroke="${off ? (c.bad ? P.bad : P.ink3) : P.surf}" stroke-width="${off ? 1.5 : 2}" stroke-linejoin="round">${tt}</path>`);
+  });
+  const labCtrl = ctrl.length <= (big ? 24 : 32), labT = targets.length <= 12;
+  ctrl.forEach(c => { if (c.bad) o.push(`<text x="${(X(c.e) + tsz + 4).toFixed(1)}" y="${(Y(c.n) + fs * 0.35).toFixed(1)}" font-size="${fs + 1}" font-weight="700" fill="${P.ink}">⚠ ${esc(c.name)}</text>`); });
+  if (labCtrl) ctrl.filter(c => !c.bad).forEach(c => o.push(`<text x="${(X(c.e) + tsz + 2).toFixed(1)}" y="${(Y(c.n) - 3).toFixed(1)}" font-size="${fs - 1}" fill="${c.on === false ? P.ink3 : P.ink2}">${esc(c.name)}</text>`));
+  if (labT) targets.forEach(t => o.push(`<text x="${(X(t.e) + r + 4).toFixed(1)}" y="${(Y(t.n) + fs * 0.35 + 6).toFixed(1)}" font-size="${fs}" font-weight="700" fill="${P.ink}">${esc(t.name)}</text>`));
+  // 圖例（上方一列）
+  let lx = 14; const ly = legH / 2 + 1;
+  const leg = (sw, label) => { o.push(sw(lx, ly)); o.push(`<text x="${lx + 16}" y="${ly + fs * 0.35}" font-size="${fs}" fill="${P.ink2}">${label}</text>`); lx += 16 + label.length * fs * 0.98 + 18; };
+  if (ctrl.length) leg((x, y) => `<path d="${tri(x + 6, y + 1, 6)}" fill="${P.c1}"/>`, '已知控制點');
+  if (targets.length) leg((x, y) => `<circle cx="${x + 6}" cy="${y}" r="5" fill="${P.c2}"/>`, targetLabel);
+  if (ctrl.some(c => c.bad)) leg((x, y) => `<path d="${tri(x + 6, y + 1, 6)}" fill="${P.bad}"/>`, '⚠ 偏差較大');
+  if (targets.some(t => t.extrap)) leg((x, y) => `<circle cx="${x + 6}" cy="${y}" r="5" fill="${P.surf}" stroke="${P.c2}" stroke-width="2"/>`, '範圍外（誤差可能較大）');
+  if (on.length >= 3) leg((x, y) => `<rect x="${x}" y="${y - 6}" width="13" height="12" rx="2" fill="${P.c1}" fill-opacity="0.12" stroke="${P.c1}" stroke-opacity="0.5"/>`, '控制範圍');
+  // 比例尺、指北、殘差尺
+  const sb = niceNum(dx / 5), sbPx = sb * s, by = legH + plotH + padB * 0.55;
+  o.push(`<line x1="14" y1="${by}" x2="${(14 + sbPx).toFixed(1)}" y2="${by}" stroke="${P.ink2}" stroke-width="2"/><line x1="14" y1="${by - 4}" x2="14" y2="${by + 4}" stroke="${P.ink2}" stroke-width="2"/><line x1="${(14 + sbPx).toFixed(1)}" y1="${by - 4}" x2="${(14 + sbPx).toFixed(1)}" y2="${by + 4}" stroke="${P.ink2}" stroke-width="2"/>`);
+  o.push(`<text x="${(20 + sbPx).toFixed(1)}" y="${by + fs * 0.35}" font-size="${fs}" fill="${P.ink2}">${sb >= 1000 ? sb / 1000 + ' 公里' : sb + ' 公尺'}</text>`);
+  const nx = W - 30, ny = legH + 14;
+  o.push(`<path d="M${nx},${ny} l6,16 l-6,-4 l-6,4z" fill="${P.ink2}"/><text x="${nx}" y="${ny + 30}" font-size="${fs}" text-anchor="middle" fill="${P.ink2}" font-weight="700">N</text>`);
+  if (k) {
+    const refM = niceNum(maxv * 0.6), refPx = refM * k * s, ax = W - 24 - refPx - 210, ay = by;
+    o.push(arrow(ax, ay, ax + refPx, ay, P.ink2));
+    o.push(`<text x="${(ax + refPx + 8).toFixed(1)}" y="${ay + fs * 0.35}" font-size="${fs}" fill="${P.ink2}">殘差 ${refM * 1000 >= 10 ? (refM * 100).toFixed(0) + ' 公分' : (refM * 1000).toFixed(0) + ' mm'}（箭頭放大 ${k.toLocaleString()} 倍）</text>`);
+  }
+  o.push('</svg>');
+  return o.join('');
+}
+/** 殘差長條圖：items [{name, v(m)}]，thr 門檻(m) */
+function barSvg({ items, thr, W = 900, P = VIZ_CSS, big = false }) {
+  if (!items.length) return '';
+  const fs = big ? 15 : 12, rowH = big ? 30 : 22, bh = big ? 16 : 12, lw = big ? 110 : 90, top = 24;
+  const list = items.slice().sort((a, b) => b.v - a.v);
+  const vmax = Math.max(thr || 0, ...list.map(i => i.v)) * 1.12 || 0.01;
+  const x0 = lw, x1 = W - 60, sx = v => x0 + (v / vmax) * (x1 - x0), H = top + list.length * rowH + 26;
+  const o = [`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-family:inherit" role="img" aria-label="控制點殘差長條圖">`];
+  const step = niceNum(vmax / 5);
+  for (let t = 0; t <= vmax + 1e-12; t += step) {
+    o.push(`<line x1="${sx(t).toFixed(1)}" y1="${top - 4}" x2="${sx(t).toFixed(1)}" y2="${H - 22}" stroke="${P.grid}" stroke-width="1"/><text x="${sx(t).toFixed(1)}" y="${H - 6}" font-size="${fs - 1}" text-anchor="middle" fill="${P.ink3}">${(t * 1000).toFixed(0)}</text>`);
+  }
+  o.push(`<text x="${x1 + 8}" y="${H - 6}" font-size="${fs - 1}" fill="${P.ink3}">mm</text>`);
+  const labelSet = new Set(list.slice(0, 3).map(i => i.name));
+  list.forEach((it, i) => {
+    const y = top + i * rowH + (rowH - bh) / 2, w = Math.max(1, sx(it.v) - x0), flag = thr && it.v > thr;
+    if (flag) labelSet.add(it.name);
+    const rr = Math.min(4, w / 2);
+    o.push(`<path d="M${x0},${y} h${(w - rr).toFixed(1)} a${rr},${rr} 0 0 1 ${rr},${rr} v${bh - 2 * rr} a${rr},${rr} 0 0 1 -${rr},${rr} h-${(w - rr).toFixed(1)}z" fill="${flag ? P.bad : P.c1}"><title>${esc(it.name)}：${mm(it.v)} mm${flag ? '（超過門檻）' : ''}</title></path>`);
+    o.push(`<text x="${x0 - 8}" y="${y + bh / 2 + fs * 0.35}" font-size="${fs}" text-anchor="end" fill="${P.ink}">${flag ? '⚠ ' : ''}${esc(it.name)}</text>`);
+    if (labelSet.has(it.name)) o.push(`<text x="${(x0 + w + 6).toFixed(1)}" y="${y + bh / 2 + fs * 0.35}" font-size="${fs - 1}" fill="${P.ink2}">${mm(it.v)}</text>`);
+  });
+  if (thr) { const tx = sx(thr).toFixed(1); o.push(`<line x1="${tx}" y1="${top - 6}" x2="${tx}" y2="${H - 22}" stroke="${P.ink2}" stroke-width="1.5"/><text x="${tx}" y="${top - 10}" font-size="${fs - 1}" text-anchor="middle" fill="${P.ink2}">門檻 ${mm(thr)} mm</text>`); }
+  o.push('</svg>');
+  return o.join('');
+}
+const residThr = m => Math.max(3 * (m.sd0 || 0), 0.03);
+function resultMapData(res) {
+  const iter = res.run.iter;
+  const ctrl = res.model.residuals.map(r => ({ name: r.name, n: iter ? r.p.n2 : r.p.n1, e: iter ? r.p.e2 : r.p.e1, vn: r.vn, ve: r.ve }));
+  return { ctrl, targets: res.items.map(it => ({ name: it.name, n: it.inN, e: it.inE, extrap: it.extrap })) };
+}
+function kpiHtml(tiles) {
+  return `<div class="kpis">${tiles.map(([lab, val, sub]) => `<div class="kpi"><div class="kl">${esc(lab)}</div><div class="kv">${val}</div>${sub ? `<div class="ks">${esc(sub)}</div>` : ''}</div>`).join('')}</div>`;
+}
+
 /* ---------------- 簡易模式（給不熟電腦的使用者：大字、三步驟、白話） ---------------- */
 const SIM = { res: null, kind: '', saved: '' };
 const shortName = s => s.name.replace(/\s*段.*$/, '').trim() || s.id;
@@ -884,7 +1015,7 @@ function simpleCtx() {
 function setMode(mode) {
   ui.mode = mode; saveUi();
   document.body.classList.toggle('simple', mode === 'simple');
-  if (mode === 'simple') renderSimple(); else { renderSetSelect(); refreshTransHeader(); }
+  if (mode === 'simple') { renderSimple(); setSimpleTab(ui.sTab || 'conv'); } else { renderSetSelect(); refreshTransHeader(); }
   window.scrollTo(0, 0);
 }
 function applyZoom() { $('#simpleApp').style.zoom = S().zoom || 1; }
@@ -893,7 +1024,7 @@ function renderSimple() {
   const sets = simpleSets();
   if (!sets.some(s => s.id === ui.set) && sets[0]) ui.set = sets[0].id;
   $('#sGrid').innerHTML = sets.map(s => `<button data-id="${esc(s.id)}" class="${s.id === ui.set ? 'on' : ''}">${esc(shortName(s))}<small>${s.sections.length > 1 ? s.sections.length + ' 個段' : '段'}</small></button>`).join('');
-  $$('#sGrid button').forEach(b => b.onclick = () => { ui.set = b.dataset.id; saveUi(); $('#sFind').value = ''; $('#sFindMsg').textContent = ''; renderSimple(); });
+  $$('#sGrid button').forEach(b => b.onclick = async () => { if (!(await sPickSet(b.dataset.id))) return; $('#sFind').value = ''; $('#sFindMsg').textContent = ''; });
   $$('#sDir button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.dir));
   const sys = ui.dir === 'fwd' ? 'TWD67' : 'TWD97';
   $('#sNLab').textContent = `N 坐標（${sys}，7 位數）`; $('#sELab').textContent = `E 坐標（${sys}，6 位數）`;
@@ -903,6 +1034,13 @@ function renderSimple() {
   box.innerHTML = !m ? sMsg('bad', '這個地段的參數有問題，無法轉換，請聯絡管理人員。')
     : m.df <= 1 ? sMsg('warn', `已選「${esc(set.name)}」。這個地段的已知點很少（${m.nctrl} 點），成果僅供參考。`)
     : sMsg('info', `已選「${esc(set.name)}」，共有 ${m.nctrl} 個已知控制點。`);
+  if (ui.sTab === 'mng') renderSimpleManage();
+}
+async function sPickSet(id) {
+  if (id === ui.set) return true;
+  if (SMG.dirty && !(await confirmDlg('還沒儲存', `「${esc((getSet(SMG.id) || {}).name || '')}」的變更還沒儲存，換地段的話變更會不見。確定要換嗎？`, '不存了，換地段', true))) return false;
+  SMG.dirty = false; SMG.log = [];
+  ui.set = id; saveUi(); renderSimple(); return true;
 }
 function showSimpleResult(html) { $('#sResStep').style.display = ''; $('#sRes').innerHTML = html; $('#sResStep').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function simpleError(text) { showSimpleResult(sMsg('bad', text)); }
@@ -923,6 +1061,7 @@ function simpleSingle() {
     <div class="s-res"><div class="k">N</div><div class="v" id="sOutN">${fx(it.n, d)}</div><button data-copy="${fx(it.n, d)}">複製</button>
     <div class="k">E</div><div class="v" id="sOutE">${fx(it.e, d)}</div><button data-copy="${fx(it.e, d)}">複製</button></div>` +
     (it.extrap ? sMsg('warn', '⚠ 這個點在已知控制點的範圍外面，誤差可能比較大，請小心使用。') : sMsg('ok', '✔ 轉換完成。')) +
+    `<p style="margin:16px 0 6px;font-size:19px">你的點（橙色）與已知控制點（藍色三角形）的位置：</p>` + mapSvg({ ctrl: resultMapData(res).ctrl, targets: [{ name: '你的點', n: it.inN, e: it.inE, extrap: it.extrap }], big: true, targetLabel: '你的點' }) +
     `<div class="s-actions"><button class="s-btn alt" id="sPrint">🖨 列印轉換報告</button><button class="s-btn alt" id="sAgain">再轉換一個點</button></div>`);
   $$('#sRes [data-copy]').forEach(b => b.onclick = () => navigator.clipboard.writeText(b.dataset.copy).then(() => { b.textContent = '已複製 ✓'; setTimeout(() => b.textContent = '複製', 1500); }));
   $('#sPrint').onclick = simplePrint;
@@ -968,6 +1107,7 @@ async function simpleFile(file) {
     (ex ? sMsg('warn', `⚠ 其中 ${ex.toLocaleString()} 個點在已知控制點的範圍外面（下表黃色），誤差可能比較大。`) : '') +
     `<div class="s-actions"><button class="s-btn" id="sSave">💾 儲存轉換後的檔案</button><button class="s-btn alt" id="sPrint">🖨 列印轉換報告</button></div><div id="sSaved"></div>
     <table class="s-tbl"><thead><tr><th>點名</th><th>N（${out}）</th><th>E（${out}）</th></tr></thead><tbody>${prev.map(it => `<tr${it.extrap ? ' class="hl"' : ''}><td>${esc(it.name)}</td><td>${fx(it.n, d)}</td><td>${fx(it.e, d)}</td></tr>`).join('')}</tbody></table>
+    <p style="margin:18px 0 6px;font-size:19px">點位分布：</p>${mapSvg(Object.assign(resultMapData(res), { big: true }))}
     ${res.items.length > prev.length ? `<p style="color:var(--ink3);font-size:16px">（只顯示前 ${prev.length} 點，儲存的檔案裡有全部 ${res.items.length.toLocaleString()} 點）</p>` : ''}`);
   $('#sSave').onclick = simpleSave; $('#sPrint').onclick = simplePrint;
 }
@@ -984,6 +1124,144 @@ function simpleSave() {
   download(name, data);
   $('#sSaved').innerHTML = sMsg('ok', `已存到電腦的「<b>下載</b>」資料夾，檔名：<br><b style="font-family:var(--mono)">${esc(name)}</b>`);
 }
+/* 簡易模式：管理已知點 */
+let SMG = { id: null, pts: [], dirty: false, log: [], cand: null };
+function smEnsure() {
+  const set = getSet(ui.set);
+  if (!set) return null;
+  if (SMG.id !== set.id || !SMG.dirty) SMG = { id: set.id, pts: clone(set.points), dirty: false, log: SMG.id === set.id ? SMG.log : [], cand: null };
+  return set;
+}
+function smFit(pts) {
+  const rows = pts.map((p, i) => ({ name: p.name, ip: 1, n1: +p.n1, e1: +p.e1, n2: +p.n2, e2: +p.e2, _i: i })).filter((r, i) => pts[i].on !== false);
+  try { return E.fit(rows, { npar: (getSet(ui.set) || {}).npar || 6, colloc: false, compat: S().compat !== false }); } catch (e) { return null; }
+}
+// 已知點檢核（逐次剔除法）：
+//  1. 每個使用中的點，以「不含此點」的其餘點解算，推算其應有坐標，差值即「偏差」
+//     門檻＝max(3 cm, 3.7·σ₀·√(1+h))：σ₀ 為其餘點的單位權中誤差，h 為此點位置的槓桿值（邊緣點的推算本來就較不準），
+//     3.7 ≈ √χ²(2, 99.9%)，即二維外部學生化殘差檢定
+//  2. 超過門檻且最嚴重的一點先列為可疑、暫時排除，再重算其餘點；重複到沒有可疑點為止
+//  如此一個錯點不會拉大整體誤差而掩蓋自己，也不會讓其他好點看起來偏差很大。
+function smLeverage(m, n, e) {
+  const dn = n - m.nc0, de = e - m.ec0;
+  const rows = m.npar === 4 ? [[dn, de, 1, 0], [de, -dn, 0, 1]] : [[dn, de, 1, 0, 0, 0], [0, 0, 0, dn, de, 1]];
+  let h = 0; rows.forEach(a => { for (let i = 0; i < a.length; i++) for (let j = 0; j < a.length; j++) h += a[i] * m.Q[i][j] * a[j]; });
+  return h / 2;
+}
+function smJudge(m, n1, e1, n2, e2) {
+  const t = E.affine(m, n1, e1), vn = t.n - n2, ve = t.e - e2;
+  const thr = m.df > 1 ? Math.max(0.03, 3.7 * m.sd0 * Math.sqrt(1 + smLeverage(m, n1, e1))) : null;
+  return { vn, ve, v: Math.hypot(vn, ve), thr };
+}
+function smAnalyze(pts) {
+  const onIdx = pts.map((p, i) => p.on !== false ? i : -1).filter(i => i >= 0);
+  const fitWithout = ex => smFit(pts.map((q, j) => ex.has(j) ? Object.assign({}, q, { on: false }) : q));
+  const devFrom = (m, p) => smJudge(m, +p.n1, +p.e1, +p.n2, +p.e2);
+  const cap = Math.max(1, Math.floor(onIdx.length * 0.2));
+  const flagged = new Set();
+  for (let guard = 0; guard < onIdx.length; guard++) {
+    let worst = -1, wr = 1;
+    onIdx.forEach(i => {
+      if (flagged.has(i)) return;
+      const m = fitWithout(new Set([...flagged, i])); if (!m || m.df <= 1) return;
+      const d = devFrom(m, pts[i]), r = d.v / d.thr;
+      if (r > wr) { wr = r; worst = i; }
+    });
+    if (worst < 0) break;
+    flagged.add(worst);
+    if (flagged.size >= cap) break;
+  }
+  const clean = fitWithout(flagged), all = smFit(pts);
+  const byI = new Map(all ? all.residuals.map(r => [r.p._i, r]) : []);
+  const dev = pts.map((p, i) => {
+    let d = null;
+    if (p.on !== false && !flagged.has(i)) { const m = fitWithout(new Set([...flagged, i])); if (m) d = devFrom(m, p); }
+    else if (clean) d = devFrom(clean, p);
+    if (d) { d.bad = flagged.has(i) || (p.on === false && d.thr != null && d.v > d.thr); d.r = byI.get(i); }
+    return d;
+  });
+  return { all, clean, flagged, dev };
+}
+function renderSimpleManage() {
+  const set = smEnsure(); if (!set) return;
+  const A = smAnalyze(SMG.pts), m = A.all, dev = A.dev, judge = A.clean && A.clean.df > 1;
+  const isBad = d => d && d.bad;
+  const nOn = SMG.pts.filter(p => p.on !== false).length, nBad = SMG.pts.filter((p, i) => p.on !== false && isBad(dev[i])).length;
+  $('#smSum').innerHTML = !m ? sMsg('bad', `「${esc(set.name)}」目前可用的已知點不夠，無法計算。至少需要 ${set.npar === 4 ? 2 : 3} 個點。`)
+    : sMsg(judge && nBad ? 'warn' : 'info', `「${esc(set.name)}」共有 ${SMG.pts.length} 個已知點，使用中 ${nOn} 個。` +
+      (judge ? `整體誤差約 ±${cm(A.clean.sd0)} 公分${nBad ? '（不含偏差較大的點）' : ''}。${nBad ? `<br>⚠ 有 ${nBad} 個點和其他點不吻合，請檢查（表中紅字）。` : '<br>✓ 所有使用中的點都吻合良好。'}` : '<br>已知點太少，無法判斷好壞，成果僅供參考。'));
+  $('#smMap').innerHTML = mapSvg({ ctrl: SMG.pts.map((p, i) => Object.assign({ name: p.name, n: +p.n1, e: +p.e1, on: p.on !== false, bad: !!(dev[i] && dev[i].bad) }, p.on !== false && dev[i] && dev[i].r ? { vn: dev[i].r.vn, ve: dev[i].r.ve } : {})), big: true }) +
+    `<p style="margin:6px 0 0;color:var(--ink3);font-size:16px">灰色箭頭表示每個點的偏差方向與大小（已放大）；空心三角形是停用的點。</p>`;
+  const rows = SMG.pts.map((p, i) => ({ p, i, d: dev[i] })).sort((a, b) => (b.d ? b.d.v : 0) - (a.d ? a.d.v : 0));
+  $('#smTbl').innerHTML = `<table class="s-pt"><thead><tr><th>點名</th><th>偏差</th><th>狀態</th><th></th></tr></thead><tbody>` + rows.map(({ p, i, d }) => {
+    const off = p.on === false, isNew = SMG.log.some(l => l.add === p.name);
+    const st = off ? (isBad(d) ? '停用中（確實偏差大）' : '停用中') : !judge || !d || (d.thr == null && !d.bad) ? '無法判斷' : isBad(d) ? '<span class="st-bad">⚠ 偏差較大</span>' : '<span class="st-ok">✓ 吻合良好</span>';
+    return `<tr class="${off ? 'off' : ''}"><td><b>${esc(p.name)}</b>${isNew ? ' <small style="color:var(--accent)">（新加入）</small>' : ''}</td><td style="font-family:var(--mono)">${d && judge && (d.thr != null || d.bad) ? cm(d.v) + ' 公分' : '—'}</td><td>${st}</td>
+      <td style="text-align:right">${isNew ? `<button data-rm="${i}">移除</button>` : `<button data-tg="${i}">${off ? '恢復使用' : '停用'}</button>`}</td></tr>`;
+  }).join('') + '</tbody></table>';
+  $$('#smTbl [data-tg]').forEach(b => b.onclick = () => { const p = SMG.pts[+b.dataset.tg]; p.on = p.on === false; SMG.log.push({ txt: (p.on ? '恢復使用 ' : '停用 ') + p.name }); SMG.dirty = true; renderSimpleManage(); });
+  $$('#smTbl [data-rm]').forEach(b => b.onclick = () => { const p = SMG.pts.splice(+b.dataset.rm, 1)[0]; SMG.log = SMG.log.filter(l => l.add !== p.name); SMG.dirty = SMG.log.length > 0; renderSimpleManage(); });
+  const bar = $('#smBar'), modified = set.origin === 'modified';
+  if (SMG.dirty) {
+    bar.style.display = 'flex';
+    bar.innerHTML = `<b style="flex:1">有 ${SMG.log.length} 項變更還沒儲存</b><button class="s-btn" id="smSave">💾 儲存變更</button><button class="s-btn alt" id="smUndo">放棄變更</button>`;
+    $('#smSave').onclick = smSave;
+    $('#smUndo').onclick = async () => { if (await confirmDlg('放棄變更', '剛才的變更都不要了嗎？', '不要了', true)) { SMG.dirty = false; SMG.log = []; renderSimpleManage(); } };
+  } else if (modified) {
+    bar.style.display = 'flex';
+    bar.innerHTML = `<span style="flex:1">這個地段的已知點曾經修改過。</span><button class="s-btn alt" id="smReset">復原成原本的已知點</button>`;
+    $('#smReset').onclick = async () => { if (await confirmDlg('復原', `要把「${esc(set.name)}」復原成程式內建的已知點嗎？你做過的修改都會清除。`, '復原', true)) { delete USER.sets[set.id]; saveUser(); SMG.id = null; refreshAll(); renderSimple(); toast('已復原'); } };
+  } else bar.style.display = 'none';
+}
+function smTry() {
+  const out = $('#smTryRes'), num = id => parseFloat(String($('#' + id).value).replace(/[，,\s]/g, ''));
+  const name = $('#smName').value.trim().slice(0, 8);
+  let n1 = num('smN1'), e1 = num('smE1'), n2 = num('smN2'), e2 = num('smE2'); const notes = [];
+  if (!name) { out.innerHTML = sMsg('bad', '請先填點名。'); return; }
+  if (![n1, e1, n2, e2].every(isFinite)) { out.innerHTML = sMsg('bad', '舊坐標和新坐標的 N、E 四個數字都要填。'); return; }
+  if (okE(n1) && okN(e1)) { [n1, e1] = [e1, n1]; $('#smN1').value = n1; $('#smE1').value = e1; notes.push('舊坐標的 N、E 好像填反了，已自動對調。'); }
+  if (okE(n2) && okN(e2)) { [n2, e2] = [e2, n2]; $('#smN2').value = n2; $('#smE2').value = e2; notes.push('新坐標的 N、E 好像填反了，已自動對調。'); }
+  if (![n1, n2].every(okN) || ![e1, e2].every(okE)) { out.innerHTML = sMsg('bad', 'N 應該是 7 位數（例如 2704461.069），E 應該是 6 位數（例如 215163.152），請再檢查。'); return; }
+  if (Math.hypot(n1 - n2, e1 - e2) > 2000) notes.push('⚠ 舊、新坐標相差超過 2 公里，請確認沒有填錯欄位。');
+  const exist = SMG.pts.findIndex(p => p.name === name);
+  const cand = { name, ip: 1, n1, e1, n2, e2, on: true };
+  const trial = SMG.pts.slice(); if (exist >= 0) trial[exist] = cand; else trial.push(cand);
+  const others = SMG.pts.filter((p, j) => j !== exist);
+  const m = smAnalyze(others).clean;
+  const d = m ? smJudge(m, n1, e1, n2, e2) : null;
+  SMG.cand = { cand, exist };
+  const thr = d && d.thr != null ? d.thr : 0.03;
+  let verdict;
+  if (!m || m.df <= 1) verdict = sMsg('info', '已知點太少，無法判斷這個點準不準，可以直接加入。');
+  else if (d.v <= thr) verdict = sMsg('ok', `✓ 這個點和其他已知點吻合，偏差 ${cm(d.v)} 公分，可以放心加入。`);
+  else verdict = sMsg('warn', `⚠ 這個點偏差 ${cm(d.v)} 公分，比其他點大很多（一般在 ${cm(thr)} 公分以內），可能是坐標打錯了。請再檢查一次；確定沒錯也可以加入。`);
+  out.innerHTML = notes.map(n => sMsg('info', n)).join('') + (exist >= 0 ? sMsg('info', `已經有「${esc(name)}」這個點，加入後會更新它的坐標。`) : '') + verdict +
+    `<div class="s-actions"><button class="s-btn" id="smAdd">確定加入</button><button class="s-btn alt" id="smClear">清除重填</button></div>`;
+  $('#smAdd').onclick = () => {
+    const { cand: c, exist: ex } = SMG.cand;
+    if (ex >= 0) SMG.pts[ex] = c; else SMG.pts.push(c);
+    SMG.log.push(ex >= 0 ? { txt: '更新 ' + c.name } : { txt: '新增 ' + c.name, add: c.name }); SMG.dirty = true;
+    ['smName', 'smN1', 'smE1', 'smN2', 'smE2'].forEach(id => $('#' + id).value = ''); out.innerHTML = sMsg('ok', `已加入「${esc(c.name)}」。記得按下方「儲存變更」。`);
+    renderSimpleManage();
+  };
+  $('#smClear').onclick = () => { ['smName', 'smN1', 'smE1', 'smN2', 'smE2'].forEach(id => $('#' + id).value = ''); out.innerHTML = ''; $('#smName').focus(); };
+}
+function smSave() {
+  const set = getSet(SMG.id); if (!set) return;
+  const base = builtinSet(set.id), prev = USER.sets[set.id];
+  const note = SMG.log.map(l => l.txt).join('、') + '（簡易模式）';
+  const revisions = ((prev && prev.revisions) || []).concat([{ ts: nowStr(), note, points: clone(SMG.pts) }]);
+  USER.sets[set.id] = { id: set.id, name: set.name, sections: set.sections || [], note: set.note || '', npar: set.npar, colloc: set.colloc !== false,
+    points: clone(SMG.pts), revisions, baseHash: base ? ptsHash(base.points) : undefined, savedAt: nowStr() };
+  if (saveUser()) { SMG.dirty = false; SMG.log = []; refreshAll(); renderSimple(); dlg('已儲存', `<p>「${esc(set.name)}」的已知點已經儲存，之後轉換會使用新的設定。</p><p class="muted small">變更內容：${esc(note)}</p>`, [{ label: '好', pri: true }]); }
+}
+function setSimpleTab(t) {
+  ui.sTab = t; saveUi();
+  $$('#sTabs button').forEach(b => b.classList.toggle('on', b.dataset.v === t));
+  $('#sConv').style.display = t === 'conv' ? '' : 'none'; $('#sMng').style.display = t === 'mng' ? '' : 'none';
+  if (t === 'mng') renderSimpleManage();
+}
+
 let SIM_UPD = null;
 function showSimpleUpdate(j, url) { SIM_UPD = { j, url }; $('#sUpd').style.display = 'flex'; $('#sUpd b').textContent = `有新版本 v${j.version} 可以更新`; }
 function bindSimple() {
@@ -992,10 +1270,13 @@ function bindSimple() {
     const v = e.target.value.trim(), msg = $('#sFindMsg');
     if (!v) { msg.textContent = ''; return; }
     const s = simpleSets().find(x => x.sections.includes(v) || x.id === v);
-    if (s) { ui.set = s.id; saveUi(); renderSimple(); msg.innerHTML = `<b style="color:var(--accent)">→ ${esc(s.name)}</b>`; }
+    if (s) { if (s.id !== ui.set) { sPickSet(s.id).then(ok => { msg.innerHTML = ok ? `<b style="color:var(--accent)">→ ${esc(s.name)}</b>` : ''; }); return; } msg.innerHTML = `<b style="color:var(--accent)">→ ${esc(s.name)}</b>`; }
     else msg.innerHTML = '<span style="color:var(--bad)">找不到這個段號</span>';
   });
   $('#sGo').onclick = simpleSingle;
+  $$('#sTabs button').forEach(b => b.onclick = () => setSimpleTab(b.dataset.v));
+  $('#smTry').onclick = smTry;
+  ['smName', 'smN1', 'smE1', 'smN2', 'smE2'].forEach((id, i, a) => $('#' + id).addEventListener('keydown', e => { if (e.key === 'Enter') { if (i < a.length - 1) $('#' + a[i + 1]).focus(); else smTry(); } }));
   $('#sN').addEventListener('keydown', e => { if (e.key === 'Enter') $('#sE').focus(); });
   $('#sE').addEventListener('keydown', e => { if (e.key === 'Enter') simpleSingle(); });
   $('#sN').addEventListener('paste', ev => {
@@ -1028,7 +1309,7 @@ function showPage(id) {
   if (id === 'pgAbout') renderAbout();
 }
 function refreshAll() { renderSetSelect(); refreshTransHeader(); renderSetList(); renderAbout(); }
-window.addEventListener('beforeunload', e => { if (ED.dirty) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (ED.dirty || SMG.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
 function init() {
   applyTheme();

@@ -535,6 +535,6 @@ const Engine = (() => {
   }
 
   return { fF, fE, fI, fA, r3, parseInp, writeInp, parseCOA, writeCOA, splitTable, guessColumns,
-    fit, affine, forward, inverse, collocAt, swapRows, geomChecker, distChecks, azChecks, legacyFiles };
+    fit, affine, forward, inverse, collocAt, swapRows, geomChecker, hull, distChecks, azChecks, legacyFiles };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;

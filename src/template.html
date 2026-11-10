@@ -11,6 +11,7 @@
   --bg:#f5f6f4; --panel:#ffffff; --panel2:#f0f2ef; --line:#dde1dc; --line2:#c9cec7;
   --ink:#1d2320; --ink2:#4c5650; --ink3:#7b857f; --accent:#1f6f5c; --accent2:#e6f1ed; --accentInk:#ffffff;
   --warn:#9a5b00; --warnBg:#fdf3e1; --bad:#b3261e; --badBg:#fbe9e7; --ok:#2e7d32; --okBg:#e8f3e9;
+  --viz-c1:#2a78d6; --viz-c2:#eb6834; --viz-bad:#d03b3b;
   --mono:"Cascadia Mono",Consolas,"Courier New",monospace; --r:10px; --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
   color-scheme:light;
 }
@@ -18,13 +19,13 @@
   :root:not([data-theme="light"]){
     --bg:#141816; --panel:#1c211f; --panel2:#232926; --line:#303833; --line2:#3d4740;
     --ink:#e6ebe8; --ink2:#b5beb9; --ink3:#828c87; --accent:#5cc2a3; --accent2:#1f3a32; --accentInk:#0d1a16;
-    --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
+    --viz-c1:#3987e5; --viz-c2:#d95926; --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#141816; --panel:#1c211f; --panel2:#232926; --line:#303833; --line2:#3d4740;
   --ink:#e6ebe8; --ink2:#b5beb9; --ink3:#828c87; --accent:#5cc2a3; --accent2:#1f3a32; --accentInk:#0d1a16;
-  --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
+  --viz-c1:#3987e5; --viz-c2:#d95926; --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Microsoft JhengHei UI","Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,sans-serif}
@@ -168,6 +169,16 @@ body.simple dialog{font-size:19px;max-width:min(760px,94vw)}
 body.simple dialog .hd{font-size:22px}
 body.simple dialog .btn{font-size:19px;padding:10px 22px}
 body.simple #toast .m{font-size:18px;padding:14px 18px}
+body.simple .s-tabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.s-tabs button{min-height:64px;font-size:23px;font-weight:700;border:2px solid var(--line2);border-radius:14px;background:var(--panel);color:var(--ink2);cursor:pointer}
+.s-tabs button.on{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
+.s-pt{width:100%;border-collapse:collapse;font-size:19px}
+.s-pt th{text-align:left;color:var(--ink2);border-bottom:2px solid var(--line);padding:8px 10px;font-size:17px}
+.s-pt td{border-bottom:1px solid var(--line);padding:8px 10px}
+.s-pt tr.off td{color:var(--ink3)}
+.s-pt .st-ok{color:var(--ok);font-weight:700}.s-pt .st-bad{color:var(--bad);font-weight:700}
+.s-pt button{font-size:17px;font-weight:700;padding:8px 16px;border-radius:10px;border:2px solid var(--line2);background:var(--panel);color:var(--ink);cursor:pointer;min-width:112px}
+#smBar{position:sticky;bottom:0;display:none;background:var(--panel);border:2px solid var(--accent);border-radius:16px;padding:14px 18px;box-shadow:0 -4px 18px rgba(0,0,0,.12);align-items:center;gap:14px;flex-wrap:wrap;font-size:20px}
 #sUpd{display:none;background:var(--accent2);border:2px solid var(--accent);border-radius:14px;padding:14px 18px;margin-bottom:18px;font-size:20px;align-items:center;gap:14px;flex-wrap:wrap}
 @media (max-width:760px){.s-in,.s-dir{grid-template-columns:1fr}#simpleApp{padding:12px 16px 60px}.s-res{grid-template-columns:1fr auto}.s-res .k{grid-column:1/-1}}
 </style>
@@ -182,6 +193,7 @@ body.simple #toast .m{font-size:18px;padding:14px 18px}
     <button class="s-zoom" id="sZoomIn" title="字大一點">字大 A＋</button>
     <button class="s-link" id="sToAdv">進階模式</button>
   </div>
+  <div class="s-tabs" id="sTabs"><button data-v="conv" class="on">🔄 轉換坐標</button><button data-v="mng">📍 管理已知點</button></div>
   <div id="sUpd"><b style="flex:1">有新版本可以更新</b><button class="s-btn" id="sUpdBtn">按這裡更新</button></div>
 
   <section class="s-step">
@@ -191,6 +203,7 @@ body.simple #toast .m{font-size:18px;padding:14px 18px}
     <div id="sSetMsg"></div>
   </section>
 
+  <div id="sConv">
   <section class="s-step">
     <h2><span class="s-num">2</span>轉換方向</h2>
     <div class="s-dir" id="sDir">
@@ -222,6 +235,36 @@ body.simple #toast .m{font-size:18px;padding:14px 18px}
     <h2><span class="s-num">4</span>轉換結果</h2>
     <div id="sRes"></div>
   </section>
+  </div>
+
+  <div id="sMng" style="display:none">
+    <section class="s-step">
+      <h2><span class="s-num">2</span>已知點分布</h2>
+      <div id="smSum"></div>
+      <div id="smMap" style="margin-top:12px"></div>
+    </section>
+    <section class="s-step">
+      <h2><span class="s-num">3</span>已知點清單</h2>
+      <p style="margin:0 0 8px;color:var(--ink2)">「偏差」是這個點和其他已知點不吻合的程度。偏差特別大的點，可能是坐標打錯或點位被移動過，可以先「停用」。</p>
+      <div id="smTbl"></div>
+    </section>
+    <section class="s-step">
+      <h2><span class="s-num">4</span>新增一個已知點</h2>
+      <div class="s-in">
+        <div class="s-box"><h3>點名</h3><input class="s-inp" id="smName" autocomplete="off" placeholder="例 HB149"></div>
+        <div class="s-box" style="visibility:hidden"></div>
+        <div class="s-box"><h3>舊坐標（TWD67）</h3>
+          <label class="s-lab" for="smN1">N（7 位數）</label><input class="s-inp" id="smN1" inputmode="decimal" autocomplete="off">
+          <label class="s-lab" for="smE1">E（6 位數）</label><input class="s-inp" id="smE1" inputmode="decimal" autocomplete="off"></div>
+        <div class="s-box"><h3>新坐標（TWD97）</h3>
+          <label class="s-lab" for="smN2">N（7 位數）</label><input class="s-inp" id="smN2" inputmode="decimal" autocomplete="off">
+          <label class="s-lab" for="smE2">E（6 位數）</label><input class="s-inp" id="smE2" inputmode="decimal" autocomplete="off"></div>
+      </div>
+      <button class="s-btn full" id="smTry">先試算看看</button>
+      <div id="smTryRes"></div>
+    </section>
+    <div id="smBar"></div>
+  </div>
 </div>
 
 <header class="top">
