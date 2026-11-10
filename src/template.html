@@ -117,9 +117,113 @@ pre.log{white-space:pre-wrap;font:12px/1.6 var(--mono);background:var(--panel2);
   .setlist{max-height:240px}
 }
 @media print{header.top,nav,#toast{display:none}}
+/* ===== 簡易模式 ===== */
+body.simple header.top, body.simple main{display:none}
+body:not(.simple) #simpleApp{display:none}
+#simpleApp{max-width:1000px;margin:0 auto;padding:18px 20px 80px;font-size:19px;line-height:1.6}
+.s-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.s-top h1{font-size:30px;margin:0;display:flex;align-items:center;gap:12px}
+.s-top .sp{flex:1}
+.s-link{border:0;background:none;color:var(--ink3);font-size:15px;cursor:pointer;text-decoration:underline;padding:6px}
+.s-zoom{border:2px solid var(--line2);background:var(--panel);border-radius:10px;font-size:17px;font-weight:700;padding:6px 14px;cursor:pointer}
+.s-step{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:18px}
+.s-step>h2{display:flex;align-items:center;gap:12px;font-size:24px;margin:0 0 14px}
+.s-num{flex:none;width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accentInk);display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+.s-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.s-grid button,.s-dir button{min-height:72px;border:2px solid var(--line2);background:var(--panel);border-radius:12px;font-size:22px;font-weight:700;cursor:pointer;color:var(--ink);padding:8px 10px;line-height:1.25}
+.s-grid button small{display:block;font-size:14px;font-weight:400;color:var(--ink3)}
+.s-grid button:hover,.s-dir button:hover{border-color:var(--accent)}
+.s-grid button.on,.s-dir button.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk)}
+.s-grid button.on small{color:var(--accentInk)}
+.s-grid button.on::before,.s-dir button.on::before{content:"✓ "}
+.s-find{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:19px}
+.s-find input{font-size:24px;width:150px;padding:8px 12px;border:2px solid var(--line2);border-radius:10px}
+.s-dir{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.s-dir button{font-size:22px;min-height:84px}
+.s-dir button span{display:block;font-size:15px;font-weight:400;opacity:.85}
+.s-in{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.s-box{border:2px solid var(--line);border-radius:14px;padding:18px}
+.s-box h3{margin:0 0 12px;font-size:21px}
+.s-lab{display:block;font-size:18px;font-weight:700;margin:10px 0 4px}
+.s-inp{width:100%;font:600 27px var(--mono);padding:10px 14px;border:2px solid var(--line2);border-radius:10px;background:var(--panel);color:var(--ink)}
+.s-inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent2)}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:23px;font-weight:700;padding:14px 30px;border-radius:12px;border:2px solid var(--accent);background:var(--accent);color:var(--accentInk);cursor:pointer;min-height:64px}
+.s-btn.alt{background:var(--panel);color:var(--accent)}
+.s-btn.full{width:100%;margin-top:16px}
+.s-drop{border:3px dashed var(--line2);border-radius:14px;min-height:214px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;font-size:22px;font-weight:700;color:var(--ink2);padding:16px;gap:6px}
+.s-drop small{font-size:16px;font-weight:400;color:var(--ink3)}
+.s-drop.over{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
+.s-msg{border-radius:12px;padding:14px 18px;font-size:19px;margin-top:14px}
+.s-msg.ok{background:var(--okBg);color:var(--ok)} .s-msg.warn{background:var(--warnBg);color:var(--warn)} .s-msg.bad{background:var(--badBg);color:var(--bad)} .s-msg.info{background:var(--panel2);color:var(--ink2)}
+.s-res{display:grid;grid-template-columns:auto 1fr auto;gap:10px 18px;align-items:center;margin-top:6px}
+.s-res .k{font-size:20px;color:var(--ink2);font-weight:700}
+.s-res .v{font:700 38px var(--mono);letter-spacing:.5px}
+.s-res button{font-size:18px;font-weight:700;padding:10px 18px;border-radius:10px;border:2px solid var(--line2);background:var(--panel);cursor:pointer}
+.s-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.s-tbl{width:100%;border-collapse:collapse;font-size:18px;margin-top:14px}
+.s-tbl th{text-align:left;color:var(--ink2);border-bottom:2px solid var(--line);padding:6px 10px}
+.s-tbl td{border-bottom:1px solid var(--line);padding:6px 10px;font-family:var(--mono)}
+.s-tbl tr.hl td{background:var(--warnBg)}
+body.simple dialog{font-size:19px;max-width:min(760px,94vw)}
+body.simple dialog .hd{font-size:22px}
+body.simple dialog .btn{font-size:19px;padding:10px 22px}
+body.simple #toast .m{font-size:18px;padding:14px 18px}
+#sUpd{display:none;background:var(--accent2);border:2px solid var(--accent);border-radius:14px;padding:14px 18px;margin-bottom:18px;font-size:20px;align-items:center;gap:14px;flex-wrap:wrap}
+@media (max-width:760px){.s-in,.s-dir{grid-template-columns:1fr}#simpleApp{padding:12px 16px 60px}.s-res{grid-template-columns:1fr auto}.s-res .k{grid-column:1/-1}}
 </style>
 </head>
-<body>
+<body class="simple">
+<!-- ======================= 簡易模式 ======================= -->
+<div id="simpleApp">
+  <div class="s-top">
+    <h1><svg width="38" height="38" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1f6f5c"/><path d="M8 23 L16 9 L24 23 M11 18 H21" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>坐標轉換</h1>
+    <div class="sp"></div>
+    <button class="s-zoom" id="sZoomOut" title="字小一點">字小 A−</button>
+    <button class="s-zoom" id="sZoomIn" title="字大一點">字大 A＋</button>
+    <button class="s-link" id="sToAdv">進階模式</button>
+  </div>
+  <div id="sUpd"><b style="flex:1">有新版本可以更新</b><button class="s-btn" id="sUpdBtn">按這裡更新</button></div>
+
+  <section class="s-step">
+    <h2><span class="s-num">1</span>選擇地段</h2>
+    <div class="s-grid" id="sGrid"></div>
+    <div class="s-find">或直接輸入段號：<input type="text" id="sFind" inputmode="numeric" placeholder="例 349"><span id="sFindMsg"></span></div>
+    <div id="sSetMsg"></div>
+  </section>
+
+  <section class="s-step">
+    <h2><span class="s-num">2</span>轉換方向</h2>
+    <div class="s-dir" id="sDir">
+      <button data-v="fwd">TWD67 → TWD97<span>舊坐標 轉成 新坐標</span></button>
+      <button data-v="rev">TWD97 → TWD67<span>新坐標 轉回 舊坐標</span></button>
+    </div>
+  </section>
+
+  <section class="s-step">
+    <h2><span class="s-num">3</span>輸入坐標</h2>
+    <div class="s-in">
+      <div class="s-box">
+        <h3>轉換一個點</h3>
+        <label class="s-lab" for="sN" id="sNLab">N 坐標</label>
+        <input class="s-inp" id="sN" inputmode="decimal" autocomplete="off" placeholder="2704461.069">
+        <label class="s-lab" for="sE" id="sELab">E 坐標</label>
+        <input class="s-inp" id="sE" inputmode="decimal" autocomplete="off" placeholder="215163.152">
+        <button class="s-btn full" id="sGo">開始轉換</button>
+      </div>
+      <div class="s-box">
+        <h3>轉換整個檔案</h3>
+        <div class="s-drop" id="sDrop">📂<br>把檔案拖到這裡<br>或 按這裡選擇檔案<small>可用 CSV、TXT、INP、整段 COA 檔</small></div>
+        <input type="file" id="sFile" accept=".csv,.txt,.inp,.coa,.COA,.dat" hidden>
+      </div>
+    </div>
+  </section>
+
+  <section class="s-step" id="sResStep" style="display:none">
+    <h2><span class="s-num">4</span>轉換結果</h2>
+    <div id="sRes"></div>
+  </section>
+</div>
+
 <header class="top">
   <div class="brand">
     <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1f6f5c"/><path d="M8 23 L16 9 L24 23 M11 18 H21" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>
@@ -132,6 +236,7 @@ pre.log{white-space:pre-wrap;font:12px/1.6 var(--mono);background:var(--panel2);
   </nav>
   <div class="spacer"></div>
   <span id="updBadge">有新版本</span>
+  <button class="btn sm" id="toSimple">簡易模式</button>
 </header>
 
 <main>

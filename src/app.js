@@ -794,6 +794,7 @@ async function checkUpdate(manual) {
       $('#updBadge').style.display = 'inline-block'; $('#updBadge').textContent = `有新版本 v${j.version}`;
       st.innerHTML = `<div class="note ok"><b>有新版本 v${esc(j.version)}</b>（${esc(j.date || '')}）<ul style="margin:6px 0">${(j.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul><button class="btn pri sm" id="btnDoUpd">下載並更新</button></div>`;
       $('#btnDoUpd').onclick = () => doUpdate(j, url);
+      showSimpleUpdate(j, url);
     } else if (manual) st.innerHTML = `<div class="note ok">已是最新版本（v${esc(VER.version)}）。</div>`;
   } catch (e) { if (manual) st.innerHTML = `<div class="note bad">檢查失敗：${esc(e.message)}。請確認網址可連線且允許跨來源存取（CORS）。</div>`; }
 }
@@ -872,6 +873,153 @@ function bindAboutPage() {
   $('#updBadge').onclick = () => showPage('pgAbout');
 }
 
+/* ---------------- 簡易模式（給不熟電腦的使用者：大字、三步驟、白話） ---------------- */
+const SIM = { res: null, kind: '', saved: '' };
+const shortName = s => s.name.replace(/\s*段.*$/, '').trim() || s.id;
+const simpleSets = () => allSets().filter(s => (s.sections || []).length || s.origin === 'user');
+function simpleCtx() {
+  const set = getSet(ui.set);
+  return { set, dir: ui.dir, npar: set ? set.npar : 6, colloc: set ? set.colloc !== false : true, method: 'swap', compat: S().compat !== false };
+}
+function setMode(mode) {
+  ui.mode = mode; saveUi();
+  document.body.classList.toggle('simple', mode === 'simple');
+  if (mode === 'simple') renderSimple(); else { renderSetSelect(); refreshTransHeader(); }
+  window.scrollTo(0, 0);
+}
+function applyZoom() { $('#simpleApp').style.zoom = S().zoom || 1; }
+function sMsg(cls, html) { return `<div class="s-msg ${cls}">${html}</div>`; }
+function renderSimple() {
+  const sets = simpleSets();
+  if (!sets.some(s => s.id === ui.set) && sets[0]) ui.set = sets[0].id;
+  $('#sGrid').innerHTML = sets.map(s => `<button data-id="${esc(s.id)}" class="${s.id === ui.set ? 'on' : ''}">${esc(shortName(s))}<small>${s.sections.length > 1 ? s.sections.length + ' 個段' : '段'}</small></button>`).join('');
+  $$('#sGrid button').forEach(b => b.onclick = () => { ui.set = b.dataset.id; saveUi(); $('#sFind').value = ''; $('#sFindMsg').textContent = ''; renderSimple(); });
+  $$('#sDir button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.dir));
+  const sys = ui.dir === 'fwd' ? 'TWD67' : 'TWD97';
+  $('#sNLab').textContent = `N 坐標（${sys}，7 位數）`; $('#sELab').textContent = `E 坐標（${sys}，6 位數）`;
+  const set = getSet(ui.set), box = $('#sSetMsg');
+  if (!set) { box.innerHTML = ''; return; }
+  let m = null; try { m = E.fit(ctrlRows(set), { npar: set.npar, colloc: false }); } catch (e) { /* */ }
+  box.innerHTML = !m ? sMsg('bad', '這個地段的參數有問題，無法轉換，請聯絡管理人員。')
+    : m.df <= 1 ? sMsg('warn', `已選「${esc(set.name)}」。這個地段的已知點很少（${m.nctrl} 點），成果僅供參考。`)
+    : sMsg('info', `已選「${esc(set.name)}」，共有 ${m.nctrl} 個已知控制點。`);
+}
+function showSimpleResult(html) { $('#sResStep').style.display = ''; $('#sRes').innerHTML = html; $('#sResStep').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+function simpleError(text) { showSimpleResult(sMsg('bad', text)); }
+const okN = v => v > 2.3e6 && v < 2.9e6, okE = v => v > 1e5 && v < 4e5;
+function simpleSingle() {
+  const num = s => parseFloat(String(s).replace(/[，,\s]/g, ''));
+  let n = num($('#sN').value), e = num($('#sE').value), note = '';
+  if (!isFinite(n) || !isFinite(e)) { simpleError('請把 N 和 E 兩個坐標都填上數字。'); return; }
+  if (okE(n) && okN(e)) { [n, e] = [e, n]; $('#sN').value = n; $('#sE').value = e; note = 'N、E 好像填反了，已經自動幫你對調。'; }
+  if (!okN(n) || !okE(e)) { simpleError('坐標看起來不對：N 應該是 7 位數（例如 2704461.069），E 應該是 6 位數（例如 215163.152）。請再檢查一次。'); return; }
+  const c = simpleCtx();
+  if (!c.set) { simpleError('請先在第 1 步選擇地段。'); return; }
+  let res; try { res = transformTargets(c, [{ name: 'P1', n, e }]); } catch (x) { simpleError('無法轉換：' + esc(x.message)); return; }
+  res.kind = 'single'; SIM.res = res;
+  const it = res.items[0], d = +S().dec || 3, out = sysOut(c);
+  showSimpleResult((note ? sMsg('info', note) : '') +
+    `<p style="margin:0 0 6px;font-size:20px">轉換後的 <b>${out}</b> 坐標：</p>
+    <div class="s-res"><div class="k">N</div><div class="v" id="sOutN">${fx(it.n, d)}</div><button data-copy="${fx(it.n, d)}">複製</button>
+    <div class="k">E</div><div class="v" id="sOutE">${fx(it.e, d)}</div><button data-copy="${fx(it.e, d)}">複製</button></div>` +
+    (it.extrap ? sMsg('warn', '⚠ 這個點在已知控制點的範圍外面，誤差可能比較大，請小心使用。') : sMsg('ok', '✔ 轉換完成。')) +
+    `<div class="s-actions"><button class="s-btn alt" id="sPrint">🖨 列印轉換報告</button><button class="s-btn alt" id="sAgain">再轉換一個點</button></div>`);
+  $$('#sRes [data-copy]').forEach(b => b.onclick = () => navigator.clipboard.writeText(b.dataset.copy).then(() => { b.textContent = '已複製 ✓'; setTimeout(() => b.textContent = '複製', 1500); }));
+  $('#sPrint').onclick = simplePrint;
+  $('#sAgain').onclick = () => { $('#sN').value = ''; $('#sE').value = ''; $('#sResStep').style.display = 'none'; $('#sN').focus(); };
+}
+function simplePrint() {
+  const w = window.open('', '_blank');
+  if (!w) { download(baseName(SIM.res) + '_轉換報告.html', reportHtml(SIM.res), 'text/html;charset=utf-8'); toast('報告已存到「下載」資料夾，請開啟後列印'); return; }
+  w.document.write(reportHtml(SIM.res, true)); w.document.close();
+}
+async function simpleFile(file) {
+  showSimpleResult(sMsg('info', '讀取中，請稍候…'));
+  let text;
+  try { text = await readFileText(file); } catch (e) { simpleError('這個檔案打不開。'); return; }
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) { simpleError('這個檔案是空的。'); return; }
+  let kind = '', targets = [], coa = null, table = null, map = null, notes = [];
+  const coaTry = E.parseCOA(text);
+  if (coaTry.rows.length && coaTry.rows.length >= (lines.length - (coaTry.header ? 1 : 0)) * 0.8) {
+    kind = 'coa'; coa = coaTry; targets = coa.rows.map((r, i) => ({ name: r.name, n: r.n, e: r.e, idx: i }));
+    const code = (coa.header.trim().split(/\s+/)[0] || ''), secNo = code.replace(/^[A-Za-z]+0*/, '');
+    const sug = secNo && findSetBySection(secNo);
+    if (sug && sug.id !== ui.set) { ui.set = sug.id; saveUi(); renderSimple(); notes.push(`依檔案內的段代碼 ${esc(code)}，已自動改選「${esc(sug.name)}」。`); }
+  } else if (looksInp(text)) {
+    kind = 'inp';
+    const rows = E.parseInp(text), t = rows.filter(r => r.ip >= 7 && r.ip < 9);
+    targets = (t.length ? t : rows).map((r, i) => ({ name: r.name, n: r.n1, e: r.e1, idx: i }));
+  } else {
+    kind = 'table'; table = E.splitTable(text); map = E.guessColumns(table.rows);
+    if (map.n < 0 || map.e < 0) { simpleError('看不懂這個檔案裡哪一欄是 N、哪一欄是 E。請改用「進階模式」手動指定欄位，或請管理人員協助。'); return; }
+    table.rows.slice(map.hasHeader ? 1 : 0).forEach((r, i) => { const n = parseFloat(r[map.n]), e = parseFloat(r[map.e]); if (isFinite(n) && isFinite(e)) targets.push({ name: map.name >= 0 && r[map.name] ? r[map.name] : 'P' + (i + 1), n, e, idx: i }); });
+  }
+  if (!targets.length) { simpleError('檔案裡找不到可以轉換的坐標。'); return; }
+  const c = simpleCtx();
+  if (!c.set) { simpleError('請先在第 1 步選擇地段。'); return; }
+  let res; try { res = transformTargets(c, targets); } catch (x) { simpleError('無法轉換：' + esc(x.message)); return; }
+  Object.assign(res, { kind: kind === 'coa' ? 'coa' : 'multi', coa, table, map, fileName: file.name });
+  SIM.res = res; SIM.kind = kind;
+  const d = +S().dec || 3, ex = res.items.filter(i => i.extrap).length, out = sysOut(c);
+  const prev = res.items.slice(0, 8);
+  showSimpleResult(notes.map(n => sMsg('info', n)).join('') +
+    sMsg('ok', `✔ 已轉換完成：「${esc(file.name)}」共 <b>${res.items.length.toLocaleString()}</b> 個點，轉成 ${out}。`) +
+    (ex ? sMsg('warn', `⚠ 其中 ${ex.toLocaleString()} 個點在已知控制點的範圍外面（下表黃色），誤差可能比較大。`) : '') +
+    `<div class="s-actions"><button class="s-btn" id="sSave">💾 儲存轉換後的檔案</button><button class="s-btn alt" id="sPrint">🖨 列印轉換報告</button></div><div id="sSaved"></div>
+    <table class="s-tbl"><thead><tr><th>點名</th><th>N（${out}）</th><th>E（${out}）</th></tr></thead><tbody>${prev.map(it => `<tr${it.extrap ? ' class="hl"' : ''}><td>${esc(it.name)}</td><td>${fx(it.n, d)}</td><td>${fx(it.e, d)}</td></tr>`).join('')}</tbody></table>
+    ${res.items.length > prev.length ? `<p style="color:var(--ink3);font-size:16px">（只顯示前 ${prev.length} 點，儲存的檔案裡有全部 ${res.items.length.toLocaleString()} 點）</p>` : ''}`);
+  $('#sSave').onclick = simpleSave; $('#sPrint').onclick = simplePrint;
+}
+function simpleSave() {
+  const res = SIM.res, d = +S().dec || 3, out = sysOut(res.ctx);
+  const stem = res.fileName.replace(/\.[^.]+$/, ''), ext = (res.fileName.match(/\.[^.]+$/) || ['.txt'])[0];
+  let name, data;
+  if (SIM.kind === 'coa') { name = `${stem}_${out}${ext}`; data = E.writeCOA(res.coa, res.items.map(it => ({ n: it.n, e: it.e })), null); }
+  else if (SIM.kind === 'table') {
+    const delim = res.table.delim === 'ws' ? '  ' : res.table.delim, rows = res.table.rows.map(r => r.slice());
+    res.items.forEach(it => { const r = rows[it.idx + (res.map.hasHeader ? 1 : 0)]; r[res.map.n] = fx(it.n, d); r[res.map.e] = fx(it.e, d); });
+    name = `${stem}_${out}${ext}`; data = rows.map(r => r.join(delim)).join('\r\n') + '\r\n';
+  } else { name = `${stem}_${out}.txt`; data = res.items.map(it => E.fA(it.name, 10) + E.fF(it.n, 15, d) + E.fF(it.e, 15, d)).join('\r\n') + '\r\n'; }
+  download(name, data);
+  $('#sSaved').innerHTML = sMsg('ok', `已存到電腦的「<b>下載</b>」資料夾，檔名：<br><b style="font-family:var(--mono)">${esc(name)}</b>`);
+}
+let SIM_UPD = null;
+function showSimpleUpdate(j, url) { SIM_UPD = { j, url }; $('#sUpd').style.display = 'flex'; $('#sUpd b').textContent = `有新版本 v${j.version} 可以更新`; }
+function bindSimple() {
+  $$('#sDir button').forEach(b => b.onclick = () => { ui.dir = b.dataset.v; saveUi(); renderSimple(); });
+  $('#sFind').addEventListener('input', e => {
+    const v = e.target.value.trim(), msg = $('#sFindMsg');
+    if (!v) { msg.textContent = ''; return; }
+    const s = simpleSets().find(x => x.sections.includes(v) || x.id === v);
+    if (s) { ui.set = s.id; saveUi(); renderSimple(); msg.innerHTML = `<b style="color:var(--accent)">→ ${esc(s.name)}</b>`; }
+    else msg.innerHTML = '<span style="color:var(--bad)">找不到這個段號</span>';
+  });
+  $('#sGo').onclick = simpleSingle;
+  $('#sN').addEventListener('keydown', e => { if (e.key === 'Enter') $('#sE').focus(); });
+  $('#sE').addEventListener('keydown', e => { if (e.key === 'Enter') simpleSingle(); });
+  $('#sN').addEventListener('paste', ev => {
+    const t = (ev.clipboardData || window.clipboardData).getData('text');
+    const nums = t.split(/[\s,;\t]+/).map(Number).filter(isFinite);
+    const n = nums.find(okN), e = nums.find(okE);
+    if (n != null && e != null) { ev.preventDefault(); $('#sN').value = n; $('#sE').value = e; }
+  });
+  const drop = $('#sDrop'), f = $('#sFile');
+  drop.onclick = () => f.click();
+  f.onchange = () => { if (f.files[0]) simpleFile(f.files[0]); f.value = ''; };
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) simpleFile(e.dataTransfer.files[0]); });
+  // 整個視窗都可放檔案，避免拖錯位置時瀏覽器直接開啟檔案
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => { e.preventDefault(); if (ui.mode === 'simple' && e.dataTransfer.files[0] && !drop.contains(e.target)) simpleFile(e.dataTransfer.files[0]); });
+  $('#sZoomIn').onclick = () => { S().zoom = Math.min(1.6, +(((S().zoom || 1) + 0.15).toFixed(2))); saveUser(); applyZoom(); };
+  $('#sZoomOut').onclick = () => { S().zoom = Math.max(0.85, +(((S().zoom || 1) - 0.15).toFixed(2))); saveUser(); applyZoom(); };
+  $('#sToAdv').onclick = () => setMode('adv');
+  $('#toSimple').onclick = () => setMode('simple');
+  $('#sUpdBtn').onclick = () => { if (SIM_UPD) doUpdate(SIM_UPD.j, SIM_UPD.url); };
+}
+
 /* ---------------- 主框架 ---------------- */
 function showPage(id) {
   $$('#mainTabs button').forEach(b => b.classList.toggle('on', b.dataset.page === id));
@@ -887,10 +1035,11 @@ function init() {
   $('#verLabel').textContent = 'v' + VER.version;
   document.title = '坐標轉換工具 v' + VER.version;
   $$('#mainTabs button').forEach(b => b.onclick = () => showPage(b.dataset.page));
-  bindTransPage(); bindParamsPage(); bindAboutPage();
+  bindTransPage(); bindParamsPage(); bindAboutPage(); bindSimple(); applyZoom();
   renderSetSelect();
   const s0 = getSet(ui.set); if (s0 && USER.ui.npar == null) { ui.npar = s0.npar; ui.colloc = s0.colloc !== false; }
   refreshTransHeader(); showInTab(); renderSetList(); renderAbout();
+  setMode(ui.mode === 'adv' ? 'adv' : 'simple');
   // 新版首次開啟
   if (USER.seenVersion && USER.seenVersion !== VER.version) {
     const c = (VER.changelog || []).filter(x => cmpVer(x.version, USER.seenVersion) > 0);
