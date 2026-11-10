@@ -14,6 +14,8 @@ import re
 import sys
 from datetime import date
 
+import shpread
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, 'src')
 DIST = os.path.join(HERE, 'docs')   # GitHub Pages 發佈目錄
@@ -80,7 +82,10 @@ def build_library(cfg_path):
     log = ''
     if cfg.get('log') and os.path.exists(os.path.join(root, cfg['log'])):
         log = read_text(os.path.join(root, cfg['log']))
-    lib = {'sets': sets, 'log': log}
+    bounds = []
+    if cfg.get('boundaries'):
+        bounds = shpread.load_boundaries([os.path.normpath(os.path.join(HERE, b)) for b in cfg['boundaries']], tol=1.0)
+    lib = {'sets': sets, 'log': log, 'bounds': bounds}
     digest = hashlib.sha1(js_json(lib).encode('utf-8')).hexdigest()[:10]
     lib['hash'] = digest
     lib['built'] = date.today().isoformat()
@@ -138,7 +143,7 @@ def main():
     os.makedirs(TESTS, exist_ok=True)
     with open(os.path.join(TESTS, 'test.html'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(test_tpl.replace('/*__ENGINE__*/', engine).replace('__CASES__', js_json(cases)))
-    print(f"v{ver['version']}  sets={len(lib['sets'])}  points={sum(len(s['points']) for s in lib['sets'])}  "
+    print(f"v{ver['version']}  sections={len(lib['bounds'])}  sets={len(lib['sets'])}  points={sum(len(s['points']) for s in lib['sets'])}  "
           f"tests={len(cases)}  html={len(html)//1024}KB")
 
 
