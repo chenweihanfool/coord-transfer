@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-Hant" data-app="coord-transfer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="app-version" content="__APP_VERSION__">
+<title>坐標轉換工具</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f6f5c'/%3E%3Cpath d='M8 23 L16 9 L24 23 M11 18 H21' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f5f6f4; --panel:#ffffff; --panel2:#f0f2ef; --line:#dde1dc; --line2:#c9cec7;
+  --ink:#1d2320; --ink2:#4c5650; --ink3:#7b857f; --accent:#1f6f5c; --accent2:#e6f1ed; --accentInk:#ffffff;
+  --warn:#9a5b00; --warnBg:#fdf3e1; --bad:#b3261e; --badBg:#fbe9e7; --ok:#2e7d32; --okBg:#e8f3e9;
+  --mono:"Cascadia Mono",Consolas,"Courier New",monospace; --r:10px; --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141816; --panel:#1c211f; --panel2:#232926; --line:#303833; --line2:#3d4740;
+    --ink:#e6ebe8; --ink2:#b5beb9; --ink3:#828c87; --accent:#5cc2a3; --accent2:#1f3a32; --accentInk:#0d1a16;
+    --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141816; --panel:#1c211f; --panel2:#232926; --line:#303833; --line2:#3d4740;
+  --ink:#e6ebe8; --ink2:#b5beb9; --ink3:#828c87; --accent:#5cc2a3; --accent2:#1f3a32; --accentInk:#0d1a16;
+  --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Microsoft JhengHei UI","Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 20px;height:56px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap}
+.brand svg{flex:none}
+.ver{font:12px var(--mono);color:var(--ink3);font-weight:400}
+nav.tabs{display:flex;gap:2px;margin-left:12px;height:100%}
+nav.tabs button{border:0;background:none;padding:0 14px;height:100%;cursor:pointer;color:var(--ink2);border-bottom:2px solid transparent;font-weight:600}
+nav.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.spacer{flex:1}
+#updBadge{display:none;border:1px solid var(--accent);color:var(--accent);background:var(--accent2);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+main{max-width:1280px;margin:0 auto;padding:20px}
+.page{display:none}.page.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px}
+.card>.hd{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.card>.hd h2{margin:0;font-size:15px}
+.card>.bd{padding:16px}
+.muted{color:var(--ink3)} .small{font-size:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label{font-size:12px;color:var(--ink2);font-weight:600}
+input[type=text],input[type=number],input[type=url],select,textarea{background:var(--panel);border:1px solid var(--line2);border-radius:7px;padding:7px 10px;outline:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent2)}
+textarea{font-family:var(--mono);font-size:13px;resize:vertical;width:100%}
+.mono{font-family:var(--mono)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:7px 14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accentInk)}
+.btn.pri:hover{filter:brightness(1.08);color:var(--accentInk)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 10px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:none;padding:7px 14px;cursor:pointer;font-weight:600;color:var(--ink2);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:var(--accentInk)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;border-radius:999px;padding:2px 9px;background:var(--panel2);color:var(--ink2);border:1px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--okBg);color:var(--ok);border-color:transparent}
+.chip.warn{background:var(--warnBg);color:var(--warn);border-color:transparent}
+.chip.bad{background:var(--badBg);color:var(--bad);border-color:transparent}
+.chip.acc{background:var(--accent2);color:var(--accent);border-color:transparent}
+.note{border-radius:8px;padding:10px 12px;background:var(--panel2);color:var(--ink2);font-size:13px}
+.note.warn{background:var(--warnBg);color:var(--warn)} .note.bad{background:var(--badBg);color:var(--bad)} .note.ok{background:var(--okBg);color:var(--ok)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.subtabs{display:flex;gap:4px;padding:0 12px;border-bottom:1px solid var(--line)}
+.subtabs button{border:0;background:none;padding:10px 12px;cursor:pointer;color:var(--ink2);font-weight:600;border-bottom:2px solid transparent}
+.subtabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.drop{border:1.5px dashed var(--line2);border-radius:10px;padding:16px;text-align:center;color:var(--ink3);cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
+.tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:560px}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{position:sticky;top:0;background:var(--panel2);text-align:left;font-weight:600;color:var(--ink2);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
+table.t td{padding:5px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td.num,table.t th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.t tr.off td{color:var(--ink3);text-decoration:line-through}
+table.t tr.hl td{background:var(--warnBg)}
+table.t input[type=text]{width:100%;padding:3px 6px;font-family:var(--mono);font-size:13px;border-color:transparent;background:transparent;text-align:right}
+table.t input[type=text]:hover{border-color:var(--line2)}
+table.t input.name{text-align:left;font-family:inherit}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
+.kv>div:nth-child(odd){color:var(--ink3)}
+.result-big{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline}
+.result-big .v{font:600 22px var(--mono);letter-spacing:.3px}
+.result-big .lb{font-size:12px;color:var(--ink3);margin-bottom:2px}
+.split{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+.setlist{max-height:calc(100vh - 160px);overflow:auto}
+.setlist .it{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.setlist .it:hover{background:var(--panel2)}
+.setlist .it.on{background:var(--accent2)}
+.setlist .it .nm{font-weight:600}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:4px;vertical-align:middle}
+details>summary{cursor:pointer;color:var(--ink2);font-weight:600}
+#toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:100}
+#toast .m{background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:420px;font-size:13px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;max-width:min(720px,94vw);width:100%}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog .hd{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700}
+dialog .bd{padding:16px 18px;max-height:70vh;overflow:auto}
+dialog .ft{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+pre.log{white-space:pre-wrap;font:12px/1.6 var(--mono);background:var(--panel2);padding:12px;border-radius:8px;max-height:360px;overflow:auto;margin:0}
+.cl h4{margin:14px 0 4px;font-size:14px} .cl ul{margin:0;padding-left:20px;color:var(--ink2)}
+@media (max-width: 860px){
+  header.top{padding:0 12px;gap:8px;height:auto;flex-wrap:wrap;padding-top:8px}
+  nav.tabs{margin-left:0;width:100%;height:42px;overflow-x:auto}
+  main{padding:12px 16px}
+  .split{grid-template-columns:1fr}
+  .setlist{max-height:240px}
+}
+@media print{header.top,nav,#toast{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1f6f5c"/><path d="M8 23 L16 9 L24 23 M11 18 H21" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>
+    坐標轉換工具 <span class="ver" id="verLabel"></span>
+  </div>
+  <nav class="tabs" id="mainTabs">
+    <button data-page="pgTrans" class="on">坐標轉換</button>
+    <button data-page="pgParams">參數管理</button>
+    <button data-page="pgAbout">版本與更新</button>
+  </nav>
+  <div class="spacer"></div>
+  <span id="updBadge">有新版本</span>
+</header>
+
+<main>
+<!-- ======================= 坐標轉換 ======================= -->
+<section class="page on" id="pgTrans">
+  <div class="card">
+    <div class="hd"><h2>轉換設定</h2><span class="muted small" id="setSummary"></span></div>
+    <div class="bd">
+      <div class="row">
+        <div class="field" style="flex:1 1 260px"><label for="selSet">參數組（地段）</label><select id="selSet"></select></div>
+        <div class="field"><label>方向</label><div class="seg" id="segDir"><button data-v="fwd" class="on">TWD67 → TWD97</button><button data-v="rev">TWD97 → TWD67</button></div></div>
+        <div class="field"><label>轉換模型</label><div class="seg" id="segPar"><button data-v="6" class="on">6 參數仿射</button><button data-v="4">4 參數 Helmert</button></div></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;gap:6px;align-items:center;font-weight:600;height:36px"><input type="checkbox" id="chkColloc" checked> 最小二乘配置</label></div>
+        <div class="field" id="revMethodBox" style="display:none"><label for="selRevMethod">反算方式</label>
+          <select id="selRevMethod"><option value="swap">反向擬合（交換坐標組，同原程式）</option><option value="iter">迭代反解（與正算互逆）</option></select></div>
+      </div>
+      <div id="setWarn" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="subtabs" id="inTabs">
+      <button data-v="single" class="on">單點</button>
+      <button data-v="multi">多點（CSV / TXT / INP）</button>
+      <button data-v="coa">整段（NECEXE .COA）</button>
+    </div>
+    <div class="bd">
+      <div data-in="single">
+        <div class="row">
+          <div class="field" style="width:140px"><label for="spName">點名</label><input type="text" id="spName" placeholder="可省略"></div>
+          <div class="field" style="flex:1 1 180px"><label for="spN" id="spNLabel">N（TWD67）</label><input type="text" id="spN" class="mono" inputmode="decimal" placeholder="2704461.069"></div>
+          <div class="field" style="flex:1 1 180px"><label for="spE" id="spELabel">E（TWD67）</label><input type="text" id="spE" class="mono" inputmode="decimal" placeholder="215163.152"></div>
+          <button class="btn pri" id="btnSingle">轉換</button>
+        </div>
+        <p class="muted small" style="margin:8px 0 0">可直接貼上「N E」或「點名,N,E」到 N 欄，會自動拆欄。按 Enter 轉換。</p>
+      </div>
+      <div data-in="multi" style="display:none">
+        <div class="grid2">
+          <div>
+            <textarea id="mtText" rows="9" placeholder="每行一點，可用逗號、Tab 或空白分隔，例如：&#10;1,2704461.080,215163.086,16.575,wh10&#10;N114406  2704638.177  215087.592&#10;&#10;也可直接拖放 .csv / .txt / .inp 檔"></textarea>
+          </div>
+          <div>
+            <div class="drop" id="mtDrop">拖放檔案到此，或 <u>點此選擇檔案</u><br><span class="small">CSV、TXT、INP（UTF-8 或 Big5 皆可）</span></div>
+            <input type="file" id="mtFile" accept=".csv,.txt,.inp,.dat,.xyz,text/plain" hidden>
+            <div id="mtMap" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn pri" id="btnMulti">轉換全部</button><span class="muted small" id="mtInfo"></span></div>
+      </div>
+      <div data-in="coa" style="display:none">
+        <div class="drop" id="coaDrop">拖放 NECEXE 坐標檔（*.COA）到此，或 <u>點此選擇</u></div>
+        <input type="file" id="coaFile" accept=".coa,.COA,.txt" hidden>
+        <div id="coaInfo" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="field"><label for="selCoaDec">輸出小數位</label><select id="selCoaDec"><option value="">與原檔相同</option><option value="3">3 位（mm）</option><option value="4">4 位</option></select></div>
+          <button class="btn pri" id="btnCoa" disabled>轉換整段</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resCard" style="display:none">
+    <div class="hd"><h2>轉換成果</h2><span id="resChips"></span><div class="spacer"></div>
+      <div class="row" id="resActions"></div></div>
+    <div class="bd" id="resBody"></div>
+  </div>
+</section>
+
+<!-- ======================= 參數管理 ======================= -->
+<section class="page" id="pgParams">
+  <div class="split">
+    <div class="card" style="margin:0">
+      <div class="hd"><input type="text" id="setSearch" placeholder="搜尋段號／名稱" style="flex:1"></div>
+      <div class="setlist" id="setList"></div>
+      <div class="bd" style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line)">
+        <button class="btn sm" id="btnNewSet">＋ 新參數組</button>
+        <button class="btn sm" id="btnImportSet">匯入 .inp / .json</button>
+        <input type="file" id="importSetFile" accept=".inp,.json,.txt" multiple hidden>
+      </div>
+    </div>
+    <div id="editor"></div>
+  </div>
+</section>
+
+<!-- ======================= 版本與更新 ======================= -->
+<section class="page" id="pgAbout">
+  <div class="grid2">
+    <div class="card"><div class="hd"><h2>版本</h2></div><div class="bd" id="aboutInfo"></div></div>
+    <div class="card"><div class="hd"><h2>線上更新</h2></div><div class="bd">
+      <div class="field"><label for="updUrl">更新來源（latest.json 網址）</label><input type="url" id="updUrl" placeholder="https://…/latest.json"></div>
+      <label style="display:flex;gap:6px;align-items:center;margin:10px 0" class="small"><input type="checkbox" id="updAuto"> 開啟時自動檢查（每日一次）</label>
+      <div class="row"><button class="btn pri" id="btnCheckUpd">檢查更新</button><button class="btn" id="btnUpdFile">從檔案更新…</button><input type="file" id="updFile" accept=".html,.htm" hidden></div>
+      <div id="updStatus" style="margin-top:12px"></div>
+      <p class="muted small">Chrome / Edge 可直接覆寫本檔（第一次會請你選取本檔案）；其他瀏覽器會改為下載新檔，請自行取代舊檔。自訂參數存在瀏覽器中，更新後仍保留。</p>
+    </div></div>
+    <div class="card"><div class="hd"><h2>參數庫散布與備份</h2></div><div class="bd">
+      <p class="small" style="margin-top:0">把你在「參數管理」中的修改併入內建參數庫，產生一份新的 HTML，分享給同事即可直接使用最新參數。</p>
+      <div class="row"><button class="btn pri" id="btnBakeHtml">產生含目前參數庫的 HTML</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+      <div class="row"><button class="btn" id="btnBackup">匯出自訂資料備份</button><button class="btn" id="btnRestore">匯入備份…</button><input type="file" id="restoreFile" accept=".json" hidden><button class="btn danger" id="btnClearUser">清除自訂資料</button></div>
+      <p class="muted small" id="storageInfo"></p>
+    </div></div>
+    <div class="card"><div class="hd"><h2>計算設定</h2></div><div class="bd">
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="optCompat" checked><span><b>與原程式逐位相容</b><br><span class="small muted">照 t.exe 將中間檔取至 mm 後再做配置、使用原程式的求逆演算法。關閉則全程以倍精度計算（差異通常 &lt; 1 mm）。</span></span></label>
+      <div class="row" style="margin-top:12px">
+        <div class="field"><label for="optDec">成果小數位</label><select id="optDec"><option>3</option><option>4</option></select></div>
+        <div class="field"><label for="optFar">外插警示距離（m）</label><input type="number" id="optFar" value="300" min="0" style="width:120px"></div>
+        <div class="field"><label for="optTheme">外觀</label><select id="optTheme"><option value="">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="card"><div class="hd"><h2>版本歷程</h2></div><div class="bd cl" id="changelog"></div></div>
+</section>
+</main>
+
+<div id="toast"></div>
+<dialog id="dlg"><div class="hd" id="dlgTitle"></div><div class="bd" id="dlgBody"></div><div class="ft" id="dlgFoot"></div></dialog>
+
+<script type="application/json" id="ver-data">__VERSION_JSON__</script>
+<script type="application/json" id="lib-data">__LIBRARY_JSON__</script>
+<script>
+/*__ENGINE__*/
+/*__APP__*/
+</script>
+</body>
+</html>

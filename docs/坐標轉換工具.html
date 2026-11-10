@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="zh-Hant" data-app="coord-transfer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="app-version" content="1.0.0">
+<title>坐標轉換工具</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f6f5c'/%3E%3Cpath d='M8 23 L16 9 L24 23 M11 18 H21' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f5f6f4; --panel:#ffffff; --panel2:#f0f2ef; --line:#dde1dc; --line2:#c9cec7;
+  --ink:#1d2320; --ink2:#4c5650; --ink3:#7b857f; --accent:#1f6f5c; --accent2:#e6f1ed; --accentInk:#ffffff;
+  --warn:#9a5b00; --warnBg:#fdf3e1; --bad:#b3261e; --badBg:#fbe9e7; --ok:#2e7d32; --okBg:#e8f3e9;
+  --mono:"Cascadia Mono",Consolas,"Courier New",monospace; --r:10px; --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141816; --panel:#1c211f; --panel2:#232926; --line:#303833; --line2:#3d4740;
+    --ink:#e6ebe8; --ink2:#b5beb9; --ink3:#828c87; --accent:#5cc2a3; --accent2:#1f3a32; --accentInk:#0d1a16;
+    --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141816; --panel:#1c211f; --panel2:#232926; --line:#303833; --line2:#3d4740;
+  --ink:#e6ebe8; --ink2:#b5beb9; --ink3:#828c87; --accent:#5cc2a3; --accent2:#1f3a32; --accentInk:#0d1a16;
+  --warn:#f0b35a; --warnBg:#3a2d17; --bad:#ff8a80; --badBg:#3d1f1c; --ok:#81c784; --okBg:#1e3320; --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Microsoft JhengHei UI","Microsoft JhengHei","Noto Sans TC","PingFang TC",system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+header.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 20px;height:56px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap}
+.brand svg{flex:none}
+.ver{font:12px var(--mono);color:var(--ink3);font-weight:400}
+nav.tabs{display:flex;gap:2px;margin-left:12px;height:100%}
+nav.tabs button{border:0;background:none;padding:0 14px;height:100%;cursor:pointer;color:var(--ink2);border-bottom:2px solid transparent;font-weight:600}
+nav.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.spacer{flex:1}
+#updBadge{display:none;border:1px solid var(--accent);color:var(--accent);background:var(--accent2);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+main{max-width:1280px;margin:0 auto;padding:20px}
+.page{display:none}.page.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px}
+.card>.hd{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.card>.hd h2{margin:0;font-size:15px}
+.card>.bd{padding:16px}
+.muted{color:var(--ink3)} .small{font-size:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label{font-size:12px;color:var(--ink2);font-weight:600}
+input[type=text],input[type=number],input[type=url],select,textarea{background:var(--panel);border:1px solid var(--line2);border-radius:7px;padding:7px 10px;outline:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent2)}
+textarea{font-family:var(--mono);font-size:13px;resize:vertical;width:100%}
+.mono{font-family:var(--mono)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:7px 14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accentInk)}
+.btn.pri:hover{filter:brightness(1.08);color:var(--accentInk)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:4px 10px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:none;padding:7px 14px;cursor:pointer;font-weight:600;color:var(--ink2);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:var(--accentInk)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;border-radius:999px;padding:2px 9px;background:var(--panel2);color:var(--ink2);border:1px solid var(--line);white-space:nowrap}
+.chip.ok{background:var(--okBg);color:var(--ok);border-color:transparent}
+.chip.warn{background:var(--warnBg);color:var(--warn);border-color:transparent}
+.chip.bad{background:var(--badBg);color:var(--bad);border-color:transparent}
+.chip.acc{background:var(--accent2);color:var(--accent);border-color:transparent}
+.note{border-radius:8px;padding:10px 12px;background:var(--panel2);color:var(--ink2);font-size:13px}
+.note.warn{background:var(--warnBg);color:var(--warn)} .note.bad{background:var(--badBg);color:var(--bad)} .note.ok{background:var(--okBg);color:var(--ok)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.subtabs{display:flex;gap:4px;padding:0 12px;border-bottom:1px solid var(--line)}
+.subtabs button{border:0;background:none;padding:10px 12px;cursor:pointer;color:var(--ink2);font-weight:600;border-bottom:2px solid transparent}
+.subtabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.drop{border:1.5px dashed var(--line2);border-radius:10px;padding:16px;text-align:center;color:var(--ink3);cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
+.tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;max-height:560px}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{position:sticky;top:0;background:var(--panel2);text-align:left;font-weight:600;color:var(--ink2);padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
+table.t td{padding:5px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td.num,table.t th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.t tr.off td{color:var(--ink3);text-decoration:line-through}
+table.t tr.hl td{background:var(--warnBg)}
+table.t input[type=text]{width:100%;padding:3px 6px;font-family:var(--mono);font-size:13px;border-color:transparent;background:transparent;text-align:right}
+table.t input[type=text]:hover{border-color:var(--line2)}
+table.t input.name{text-align:left;font-family:inherit}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px}
+.kv>div:nth-child(odd){color:var(--ink3)}
+.result-big{display:flex;gap:24px;flex-wrap:wrap;align-items:baseline}
+.result-big .v{font:600 22px var(--mono);letter-spacing:.3px}
+.result-big .lb{font-size:12px;color:var(--ink3);margin-bottom:2px}
+.split{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+.setlist{max-height:calc(100vh - 160px);overflow:auto}
+.setlist .it{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.setlist .it:hover{background:var(--panel2)}
+.setlist .it.on{background:var(--accent2)}
+.setlist .it .nm{font-weight:600}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:4px;vertical-align:middle}
+details>summary{cursor:pointer;color:var(--ink2);font-weight:600}
+#toast{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:100}
+#toast .m{background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:420px;font-size:13px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;max-width:min(720px,94vw);width:100%}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog .hd{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700}
+dialog .bd{padding:16px 18px;max-height:70vh;overflow:auto}
+dialog .ft{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+pre.log{white-space:pre-wrap;font:12px/1.6 var(--mono);background:var(--panel2);padding:12px;border-radius:8px;max-height:360px;overflow:auto;margin:0}
+.cl h4{margin:14px 0 4px;font-size:14px} .cl ul{margin:0;padding-left:20px;color:var(--ink2)}
+@media (max-width: 860px){
+  header.top{padding:0 12px;gap:8px;height:auto;flex-wrap:wrap;padding-top:8px}
+  nav.tabs{margin-left:0;width:100%;height:42px;overflow-x:auto}
+  main{padding:12px 16px}
+  .split{grid-template-columns:1fr}
+  .setlist{max-height:240px}
+}
+@media print{header.top,nav,#toast{display:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1f6f5c"/><path d="M8 23 L16 9 L24 23 M11 18 H21" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>
+    坐標轉換工具 <span class="ver" id="verLabel"></span>
+  </div>
+  <nav class="tabs" id="mainTabs">
+    <button data-page="pgTrans" class="on">坐標轉換</button>
+    <button data-page="pgParams">參數管理</button>
+    <button data-page="pgAbout">版本與更新</button>
+  </nav>
+  <div class="spacer"></div>
+  <span id="updBadge">有新版本</span>
+</header>
+
+<main>
+<!-- ======================= 坐標轉換 ======================= -->
+<section class="page on" id="pgTrans">
+  <div class="card">
+    <div class="hd"><h2>轉換設定</h2><span class="muted small" id="setSummary"></span></div>
+    <div class="bd">
+      <div class="row">
+        <div class="field" style="flex:1 1 260px"><label for="selSet">參數組（地段）</label><select id="selSet"></select></div>
+        <div class="field"><label>方向</label><div class="seg" id="segDir"><button data-v="fwd" class="on">TWD67 → TWD97</button><button data-v="rev">TWD97 → TWD67</button></div></div>
+        <div class="field"><label>轉換模型</label><div class="seg" id="segPar"><button data-v="6" class="on">6 參數仿射</button><button data-v="4">4 參數 Helmert</button></div></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;gap:6px;align-items:center;font-weight:600;height:36px"><input type="checkbox" id="chkColloc" checked> 最小二乘配置</label></div>
+        <div class="field" id="revMethodBox" style="display:none"><label for="selRevMethod">反算方式</label>
+          <select id="selRevMethod"><option value="swap">反向擬合（交換坐標組，同原程式）</option><option value="iter">迭代反解（與正算互逆）</option></select></div>
+      </div>
+      <div id="setWarn" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="subtabs" id="inTabs">
+      <button data-v="single" class="on">單點</button>
+      <button data-v="multi">多點（CSV / TXT / INP）</button>
+      <button data-v="coa">整段（NECEXE .COA）</button>
+    </div>
+    <div class="bd">
+      <div data-in="single">
+        <div class="row">
+          <div class="field" style="width:140px"><label for="spName">點名</label><input type="text" id="spName" placeholder="可省略"></div>
+          <div class="field" style="flex:1 1 180px"><label for="spN" id="spNLabel">N（TWD67）</label><input type="text" id="spN" class="mono" inputmode="decimal" placeholder="2704461.069"></div>
+          <div class="field" style="flex:1 1 180px"><label for="spE" id="spELabel">E（TWD67）</label><input type="text" id="spE" class="mono" inputmode="decimal" placeholder="215163.152"></div>
+          <button class="btn pri" id="btnSingle">轉換</button>
+        </div>
+        <p class="muted small" style="margin:8px 0 0">可直接貼上「N E」或「點名,N,E」到 N 欄，會自動拆欄。按 Enter 轉換。</p>
+      </div>
+      <div data-in="multi" style="display:none">
+        <div class="grid2">
+          <div>
+            <textarea id="mtText" rows="9" placeholder="每行一點，可用逗號、Tab 或空白分隔，例如：&#10;1,2704461.080,215163.086,16.575,wh10&#10;N114406  2704638.177  215087.592&#10;&#10;也可直接拖放 .csv / .txt / .inp 檔"></textarea>
+          </div>
+          <div>
+            <div class="drop" id="mtDrop">拖放檔案到此，或 <u>點此選擇檔案</u><br><span class="small">CSV、TXT、INP（UTF-8 或 Big5 皆可）</span></div>
+            <input type="file" id="mtFile" accept=".csv,.txt,.inp,.dat,.xyz,text/plain" hidden>
+            <div id="mtMap" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px"><button class="btn pri" id="btnMulti">轉換全部</button><span class="muted small" id="mtInfo"></span></div>
+      </div>
+      <div data-in="coa" style="display:none">
+        <div class="drop" id="coaDrop">拖放 NECEXE 坐標檔（*.COA）到此，或 <u>點此選擇</u></div>
+        <input type="file" id="coaFile" accept=".coa,.COA,.txt" hidden>
+        <div id="coaInfo" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="field"><label for="selCoaDec">輸出小數位</label><select id="selCoaDec"><option value="">與原檔相同</option><option value="3">3 位（mm）</option><option value="4">4 位</option></select></div>
+          <button class="btn pri" id="btnCoa" disabled>轉換整段</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resCard" style="display:none">
+    <div class="hd"><h2>轉換成果</h2><span id="resChips"></span><div class="spacer"></div>
+      <div class="row" id="resActions"></div></div>
+    <div class="bd" id="resBody"></div>
+  </div>
+</section>
+
+<!-- ======================= 參數管理 ======================= -->
+<section class="page" id="pgParams">
+  <div class="split">
+    <div class="card" style="margin:0">
+      <div class="hd"><input type="text" id="setSearch" placeholder="搜尋段號／名稱" style="flex:1"></div>
+      <div class="setlist" id="setList"></div>
+      <div class="bd" style="display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line)">
+        <button class="btn sm" id="btnNewSet">＋ 新參數組</button>
+        <button class="btn sm" id="btnImportSet">匯入 .inp / .json</button>
+        <input type="file" id="importSetFile" accept=".inp,.json,.txt" multiple hidden>
+      </div>
+    </div>
+    <div id="editor"></div>
+  </div>
+</section>
+
+<!-- ======================= 版本與更新 ======================= -->
+<section class="page" id="pgAbout">
+  <div class="grid2">
+    <div class="card"><div class="hd"><h2>版本</h2></div><div class="bd" id="aboutInfo"></div></div>
+    <div class="card"><div class="hd"><h2>線上更新</h2></div><div class="bd">
+      <div class="field"><label for="updUrl">更新來源（latest.json 網址）</label><input type="url" id="updUrl" placeholder="https://…/latest.json"></div>
+      <label style="display:flex;gap:6px;align-items:center;margin:10px 0" class="small"><input type="checkbox" id="updAuto"> 開啟時自動檢查（每日一次）</label>
+      <div class="row"><button class="btn pri" id="btnCheckUpd">檢查更新</button><button class="btn" id="btnUpdFile">從檔案更新…</button><input type="file" id="updFile" accept=".html,.htm" hidden></div>
+      <div id="updStatus" style="margin-top:12px"></div>
+      <p class="muted small">Chrome / Edge 可直接覆寫本檔（第一次會請你選取本檔案）；其他瀏覽器會改為下載新檔，請自行取代舊檔。自訂參數存在瀏覽器中，更新後仍保留。</p>
+    </div></div>
+    <div class="card"><div class="hd"><h2>參數庫散布與備份</h2></div><div class="bd">
+      <p class="small" style="margin-top:0">把你在「參數管理」中的修改併入內建參數庫，產生一份新的 HTML，分享給同事即可直接使用最新參數。</p>
+      <div class="row"><button class="btn pri" id="btnBakeHtml">產生含目前參數庫的 HTML</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+      <div class="row"><button class="btn" id="btnBackup">匯出自訂資料備份</button><button class="btn" id="btnRestore">匯入備份…</button><input type="file" id="restoreFile" accept=".json" hidden><button class="btn danger" id="btnClearUser">清除自訂資料</button></div>
+      <p class="muted small" id="storageInfo"></p>
+    </div></div>
+    <div class="card"><div class="hd"><h2>計算設定</h2></div><div class="bd">
+      <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="optCompat" checked><span><b>與原程式逐位相容</b><br><span class="small muted">照 t.exe 將中間檔取至 mm 後再做配置、使用原程式的求逆演算法。關閉則全程以倍精度計算（差異通常 &lt; 1 mm）。</span></span></label>
+      <div class="row" style="margin-top:12px">
+        <div class="field"><label for="optDec">成果小數位</label><select id="optDec"><option>3</option><option>4</option></select></div>
+        <div class="field"><label for="optFar">外插警示距離（m）</label><input type="number" id="optFar" value="300" min="0" style="width:120px"></div>
+        <div class="field"><label for="optTheme">外觀</label><select id="optTheme"><option value="">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="card"><div class="hd"><h2>版本歷程</h2></div><div class="bd cl" id="changelog"></div></div>
+</section>
+</main>
+
+<div id="toast"></div>
+<dialog id="dlg"><div class="hd" id="dlgTitle"></div><div class="bd" id="dlgBody"></div><div class="ft" id="dlgFoot"></div></dialog>
+
+<script type="application/json" id="ver-data">{"version":"1.0.0","date":"2026-11-10","updateUrl":"https://chenweihanfool.github.io/coord-transfer/latest.json","changelog":[{"version":"1.0.0","date":"2026-11-10","items":["首版：以 HTML 單檔重現國土測繪中心 TRANSFN1 坐標轉換（4/6 參數 + 最小二乘配置），與 t.exe 輸出逐位一致","單點、多點 (CSV/TXT/INP) 與整段 NECEXE .COA 轉換；TWD67⇄TWD97 雙向","轉換報告（可列印）與原程式格式檔案 (.out / AFFINE6.OUT / interp.out …) 打包下載","參數管理：新增/停用控制點、即時殘差、版本紀錄與還原、匯入匯出 .inp / JSON","自我更新：由更新網址或新版檔案覆寫本檔；可產生內含目前參數庫的新 HTML"]}]}</script>
+<script type="application/json" id="lib-data">{"sets":[{"id":"346-353","name":"346～353 段","sections":["346","347","348","349","350","351","352","353"],"note":"","file":"346-353/349.inp","npar":6,"colloc":true,"points":[["A4",1,2709376.35,218785.951,2709581.598,217956.883],["A7",1,2706837.461,216911.998,2707042.609,216082.963],["B604",1,2709288.357,217842.038,2709493.626,217012.963],["B603",1,2709338.307,217855.204,2709543.562,217026.129],["B602",1,2709374.484,217841.243,2709579.759,217012.182],["B610",1,2709372.787,217799.809,2709578.037,216970.733],["B630",1,2709342.213,217696.244,2709547.428,216867.186],["B615",1,2709456.454,217680.917,2709661.666,216851.813],["B695",1,2709886.799,217760.973,2710092.063,216931.883],["Q52",1,2709863.859,218597.061,2710069.095,217768.034],["B692",1,2709531.887,218142.687,2709737.168,217313.635],["BA32",1,2709414.349,218480.447,2709619.577,217651.403],["B662",1,2709319.71,218484.093,2709525.006,217655.087],["BA44",1,2708393.425,217931.076,2708598.666,217102.021],["BA41",1,2708509.532,218047.813,2708714.796,217218.737],["B648",1,2708865.671,218044.628,2709070.902,217215.594],["B647",1,2708831.522,217995.61,2709036.746,217166.584],["B646",1,2708870.57,217876.613,2709075.778,217047.579],["B668",1,2708956.58,217817.367,2709161.779,216988.293],["B643",1,2708969.283,217790.847,2709174.505,216961.815],["HB175",1,2708633.647,216682.988,2708838.876,215853.901],["HB174",1,2708543.06,216598.732,2708748.278,215769.641],["HB173",1,2708543.565,216576.368,2708748.79,215747.216],["HB172",1,2708500.268,216500.417,2708705.475,215671.287],["HB171",1,2708377.483,216437.316,2708582.668,215608.166],["HB170",1,2708383.968,216353.239,2708589.145,215524.127],["B2",1,2708408.114,216364.578,2708613.286,215535.462],["HB161",1,2708034.757,216370.1,2708239.916,215540.985],["HB160",1,2707931.456,216418.418,2708136.605,215589.315],["HB159",1,2707897.188,216487.003,2708102.314,215657.916],["B3",1,2707847.968,216841.5,2708053.129,216012.465],["F127",1,2709744.857,218062.932,2709950.138,217233.876],["HB200",1,2709541.784,217563.504,2709747.073,216734.42]],"samples":[["N114026",8,2709412.362,218175.238],["N114028",8,2709364.771,218065.074]],"history":[{"label":"1140502","file":"346-353/成果解算/1140502/349.inp","points":[["A4",1,2709376.317,218785.873,2709581.598,217956.883],["A5",1,2708571.229,217960.131,2708776.521,217131.098],["A7",1,2706837.451,216911.926,2707042.609,216082.963],["B604",1,2709288.327,217841.966,2709493.626,217012.963],["B603",1,2709338.277,217855.132,2709543.562,217026.129],["B602",1,2709374.454,217841.171,2709579.759,217012.182],["B610",1,2709372.757,217799.738,2709578.037,216970.733],["B630",1,2709342.183,217696.173,2709547.428,216867.186],["B615",1,2709456.423,217680.847,2709661.666,216851.813],["B695",1,2709886.765,217760.903,2710092.063,216931.883],["Q52",1,2709863.823,218596.985,2710069.095,217768.034],["QW1",1,2709884.491,218626.08,2710089.763,217797.146]]},{"label":"1140616","file":"346-353/成果解算/1140616/349.inp","points":[["A4",1,2709376.317,218785.873,2709581.598,217956.883],["A5",1,2708571.229,217960.131,2708776.521,217131.098],["A7",1,2706837.451,216911.926,2707042.609,216082.963],["B604",1,2709288.327,217841.966,2709493.626,217012.963],["B603",1,2709338.277,217855.132,2709543.562,217026.129],["B602",1,2709374.454,217841.171,2709579.759,217012.182],["B610",1,2709372.757,217799.738,2709578.037,216970.733],["B630",1,2709342.183,217696.173,2709547.428,216867.186],["B615",1,2709456.423,217680.847,2709661.666,216851.813],["B695",1,2709886.765,217760.903,2710092.063,216931.883],["Q52",1,2709863.823,218596.985,2710069.095,217768.034],["B692",1,2709531.887,218142.687,2709737.168,217313.635],["BA32",1,2709414.349,218480.447,2709619.577,217651.403],["B662",1,2709319.71,218484.093,2709525.006,217655.087],["BA44",1,2708393.425,217931.076,2708598.666,217102.021],["BA41",1,2708509.532,218047.813,2708714.796,217218.737],["B648",1,2708865.671,218044.628,2709070.902,217215.594],["B647",1,2708831.522,217995.61,2709036.746,217166.584],["B646",1,2708870.57,217876.613,2709075.778,217047.579],["B645",1,2708908.327,217832.816,2709113.612,217003.828],["B668",1,2708956.58,217817.367,2709161.779,216988.293],["B643",1,2708969.283,217790.847,2709174.505,216961.815],["HB175",1,2708633.647,216682.988,2708838.876,215853.901],["HB174",1,2708543.06,216598.732,2708748.278,215769.641],["HB173",1,2708543.565,216576.368,2708748.79,215747.216],["HB172",1,2708500.268,216500.417,2708705.475,215671.287],["HB171",1,2708377.483,216437.316,2708582.668,215608.166],["HB170",1,2708383.968,216353.239,2708589.145,215524.127],["B2",1,2708408.114,216364.578,2708613.286,215535.462],["HB161",1,2708034.757,216370.1,2708239.916,215540.985],["HB160",1,2707931.456,216418.418,2708136.605,215589.315],["HB159",1,2707897.188,216487.003,2708102.314,215657.916],["B3",1,2707847.968,216841.5,2708053.129,216012.465]]},{"label":"1140701","file":"346-353/成果解算/1140701/349.inp","points":[["A4",1,2709376.35,218785.951,2709581.598,217956.883],["A7",1,2706837.461,216911.998,2707042.609,216082.963],["B604",1,2709288.357,217842.038,2709493.626,217012.963],["B603",1,2709338.307,217855.204,2709543.562,217026.129],["B602",1,2709374.484,217841.243,2709579.759,217012.182],["B610",1,2709372.787,217799.809,2709578.037,216970.733],["B630",1,2709342.213,217696.244,2709547.428,216867.186],["B615",1,2709456.454,217680.917,2709661.666,216851.813],["B695",1,2709886.799,217760.973,2710092.063,216931.883],["Q52",1,2709863.859,218597.061,2710069.095,217768.034],["B692",1,2709531.887,218142.687,2709737.168,217313.635],["BA32",1,2709414.349,218480.447,2709619.577,217651.403],["B662",1,2709319.71,218484.093,2709525.006,217655.087],["BA44",1,2708393.425,217931.076,2708598.666,217102.021],["BA41",1,2708509.532,218047.813,2708714.796,217218.737],["B648",1,2708865.671,218044.628,2709070.902,217215.594],["B647",1,2708831.522,217995.61,2709036.746,217166.584],["B646",1,2708870.57,217876.613,2709075.778,217047.579],["B668",1,2708956.58,217817.367,2709161.779,216988.293],["B643",1,2708969.283,217790.847,2709174.505,216961.815],["HB175",1,2708633.647,216682.988,2708838.876,215853.901],["HB174",1,2708543.06,216598.732,2708748.278,215769.641],["HB173",1,2708543.565,216576.368,2708748.79,215747.216],["HB172",1,2708500.268,216500.417,2708705.475,215671.287],["HB171",1,2708377.483,216437.316,2708582.668,215608.166],["HB170",1,2708383.968,216353.239,2708589.145,215524.127],["B2",1,2708408.114,216364.578,2708613.286,215535.462],["HB161",1,2708034.757,216370.1,2708239.916,215540.985],["HB160",1,2707931.456,216418.418,2708136.605,215589.315],["HB159",1,2707897.188,216487.003,2708102.314,215657.916],["B3",1,2707847.968,216841.5,2708053.129,216012.465],["F127",1,2709744.857,218062.932,2709950.138,217233.876]]},{"label":"1140701_2","file":"346-353/成果解算/1140701_2/349.inp","points":[["A4",1,2709376.35,218785.951,2709581.598,217956.883],["A7",1,2706837.461,216911.998,2707042.609,216082.963],["B604",1,2709288.357,217842.038,2709493.626,217012.963],["B603",1,2709338.307,217855.204,2709543.562,217026.129],["B602",1,2709374.484,217841.243,2709579.759,217012.182],["B610",1,2709372.787,217799.809,2709578.037,216970.733],["B630",1,2709342.213,217696.244,2709547.428,216867.186],["B615",1,2709456.454,217680.917,2709661.666,216851.813],["B695",1,2709886.799,217760.973,2710092.063,216931.883],["Q52",1,2709863.859,218597.061,2710069.095,217768.034],["B692",1,2709531.887,218142.687,2709737.168,217313.635],["BA32",1,2709414.349,218480.447,2709619.577,217651.403],["B662",1,2709319.71,218484.093,2709525.006,217655.087],["BA44",1,2708393.425,217931.076,2708598.666,217102.021],["BA41",1,2708509.532,218047.813,2708714.796,217218.737],["B648",1,2708865.671,218044.628,2709070.902,217215.594],["B647",1,2708831.522,217995.61,2709036.746,217166.584],["B646",1,2708870.57,217876.613,2709075.778,217047.579],["B668",1,2708956.58,217817.367,2709161.779,216988.293],["B643",1,2708969.283,217790.847,2709174.505,216961.815],["HB175",1,2708633.647,216682.988,2708838.876,215853.901],["HB174",1,2708543.06,216598.732,2708748.278,215769.641],["HB173",1,2708543.565,216576.368,2708748.79,215747.216],["HB172",1,2708500.268,216500.417,2708705.475,215671.287],["HB171",1,2708377.483,216437.316,2708582.668,215608.166],["HB170",1,2708383.968,216353.239,2708589.145,215524.127],["B2",1,2708408.114,216364.578,2708613.286,215535.462],["HB161",1,2708034.757,216370.1,2708239.916,215540.985],["HB160",1,2707931.456,216418.418,2708136.605,215589.315],["HB159",1,2707897.188,216487.003,2708102.314,215657.916],["B3",1,2707847.968,216841.5,2708053.129,216012.465],["F127",1,2709744.857,218062.932,2709950.138,217233.876],["HB200",1,2709541.784,217563.504,2709747.073,216734.42]]},{"label":"1140930","file":"346-353/成果解算/1140930/349.inp","points":[["A4",1,2709376.35,218785.951,2709581.598,217956.883],["A7",1,2706837.461,216911.998,2707042.609,216082.963],["B604",1,2709288.357,217842.038,2709493.626,217012.963],["B603",1,2709338.307,217855.204,2709543.562,217026.129],["B602",1,2709374.484,217841.243,2709579.759,217012.182],["B610",1,2709372.787,217799.809,2709578.037,216970.733],["B630",1,2709342.213,217696.244,2709547.428,216867.186],["B615",1,2709456.454,217680.917,2709661.666,216851.813],["B695",1,2709886.799,217760.973,2710092.063,216931.883],["Q52",1,2709863.859,218597.061,2710069.095,217768.034],["B692",1,2709531.887,218142.687,2709737.168,217313.635],["BA32",1,2709414.349,218480.447,2709619.577,217651.403],["B662",1,2709319.71,218484.093,2709525.006,217655.087],["BA44",1,2708393.425,217931.076,2708598.666,217102.021],["BA41",1,2708509.532,218047.813,2708714.796,217218.737],["B648",1,2708865.671,218044.628,2709070.902,217215.594],["B647",1,2708831.522,217995.61,2709036.746,217166.584],["B646",1,2708870.57,217876.613,2709075.778,217047.579],["B668",1,2708956.58,217817.367,2709161.779,216988.293],["B643",1,2708969.283,217790.847,2709174.505,216961.815],["HB175",1,2708633.647,216682.988,2708838.876,215853.901],["HB174",1,2708543.06,216598.732,2708748.278,215769.641],["HB173",1,2708543.565,216576.368,2708748.79,215747.216],["HB172",1,2708500.268,216500.417,2708705.475,215671.287],["HB171",1,2708377.483,216437.316,2708582.668,215608.166],["HB170",1,2708383.968,216353.239,2708589.145,215524.127],["B2",1,2708408.114,216364.578,2708613.286,215535.462],["HB161",1,2708034.757,216370.1,2708239.916,215540.985],["HB160",1,2707931.456,216418.418,2708136.605,215589.315],["HB159",1,2707897.188,216487.003,2708102.314,215657.916],["B3",1,2707847.968,216841.5,2708053.129,216012.465],["F127",1,2709744.857,218062.932,2709950.138,217233.876],["HB200",1,2709541.784,217563.504,2709747.073,216734.42],["HB137",1,2707690.367,217086.501,2707895.51,216257.489],["BA92",1,2708350.412,216998.453,2708555.574,216169.421]]}]},{"id":"357-365","name":"357～365 段","sections":["357","358","359","361","362","363","365"],"note":"","file":"357-365/363.inp","npar":6,"colloc":true,"points":[["A11",1,2704015.977,214781.2,2704221.203,213951.924],["HB869",1,2703467.761,215969.654,2703673.014,215140.403],["HB871",1,2703600.56,216035.852,2703805.783,215206.578],["HB873",1,2703648.088,215908.145,2703853.33,215078.872],["HB874",1,2703678.21,215788.121,2703883.436,214958.85],["HB854",1,2703531.995,215721.152,2703737.218,214891.875],["HB855",1,2703438.956,215677.888,2703644.181,214848.627],["HB857",1,2703341.757,215626.749,2703546.998,214797.464],["HB846",1,2703317.138,215613.831,2703522.365,214784.583],["HB847",1,2703376.276,215578.299,2703581.507,214749.034],["HB848",1,2703420.443,215532.151,2703625.668,214702.883],["QK13",1,2702818.853,215925.976,2703024.052,215096.712],["QK12",1,2702880.739,215927.823,2703085.945,215098.59],["HB126",1,2703680.345,214310.782,2703885.5,213481.495],["HB134",1,2705078.567,215292.718,2705283.825,214463.379],["HB135",1,2704971.053,215196.054,2705176.288,214366.718],["HB136",1,2704956.887,215065.492,2705162.131,214236.158],["BA121",1,2703410.901,215382.65,2703616.129,214553.338],["HB170",1,2702802.568,215631.706,2703007.768,214802.38],["HB171",1,2702661.471,215576.126,2702866.699,214746.835],["BA134",1,2702946.415,215364.765,2703151.629,214535.442],["BA136",1,2703033.034,215155.539,2703238.256,214326.202],["BA130",1,2703250.2,215141.838,2703455.404,214312.477],["H327",1,2703356.557,214917.829,2703561.775,214088.437],["H465",1,2703653.234,214528.704,2703858.463,213699.336],["HB149",1,2703746.868,214350.443,2703952.079,213521.114],["HB155-1",1,2703266.728,214034.901,2703471.965,213205.565],["HB155",1,2703227.971,214110.232,2703433.164,213280.893],["HB131",1,2703208.794,214121.684,2703413.951,213292.344],["HB124",1,2703539.393,214335.965,2703744.579,213506.66],["AA2",1,2694530.852,215008.487,2694736.314,214179.532]],"samples":[["HB172",8,2702587.889,215738.941],["QC1",8,2702726.033,215673.699],["QC2",8,2702659.596,215700.758],["QC3",8,2702678.512,215615.102],["6.14",8,2702667.612,215627.528],["HB816",8,2703027.704,215474.184],["HB776",8,2703393.113,214800.769],["HB111",8,2703472.342,214611.644],["HB636",8,2703532.587,214634.169]],"history":[{"label":"1140617","file":"357-365/成果計算/1140617/363.inp","points":[["A11",1,2704015.977,214781.2,2704221.203,213951.924],["HB869",1,2703467.761,215969.654,2703673.014,215140.403],["HB871",1,2703600.56,216035.852,2703805.783,215206.578],["HB873",1,2703648.088,215908.145,2703853.33,215078.872],["HB874",1,2703678.21,215788.121,2703883.436,214958.85],["HB854",1,2703531.995,215721.152,2703737.218,214891.875],["HB855",1,2703438.956,215677.888,2703644.181,214848.627],["HB857",1,2703341.757,215626.749,2703546.998,214797.464],["HB846",1,2703317.138,215613.831,2703522.365,214784.583],["HB847",1,2703376.276,215578.299,2703581.507,214749.034],["HB848",1,2703420.443,215532.151,2703625.668,214702.883],["QK13",1,2702818.853,215925.976,2703024.052,215096.712],["QK12",1,2702880.739,215927.823,2703085.945,215098.59],["HB126",1,2703680.345,214310.782,2703885.5,213481.495],["HB134",1,2705078.567,215292.718,2705283.825,214463.379],["HB135",1,2704971.053,215196.054,2705176.288,214366.718],["HB136",1,2704956.887,215065.492,2705162.131,214236.158]]},{"label":"1140624","file":"357-365/成果計算/1140624/363.inp","points":[["A11",1,2704015.977,214781.2,2704221.203,213951.924],["HB869",1,2703467.761,215969.654,2703673.014,215140.403],["HB871",1,2703600.56,216035.852,2703805.783,215206.578],["HB873",1,2703648.088,215908.145,2703853.33,215078.872],["HB874",1,2703678.21,215788.121,2703883.436,214958.85],["HB854",1,2703531.995,215721.152,2703737.218,214891.875],["HB855",1,2703438.956,215677.888,2703644.181,214848.627],["HB857",1,2703341.757,215626.749,2703546.998,214797.464],["HB846",1,2703317.138,215613.831,2703522.365,214784.583],["HB847",1,2703376.276,215578.299,2703581.507,214749.034],["HB848",1,2703420.443,215532.151,2703625.668,214702.883],["QK13",1,2702818.853,215925.976,2703024.052,215096.712],["QK12",1,2702880.739,215927.823,2703085.945,215098.59],["HB126",1,2703680.345,214310.782,2703885.5,213481.495],["HB134",1,2705078.567,215292.718,2705283.825,214463.379],["HB135",1,2704971.053,215196.054,2705176.288,214366.718],["HB136",1,2704956.887,215065.492,2705162.131,214236.158],["BA121",1,2703410.901,215382.65,2703616.129,214553.338],["HB170",1,2702802.568,215631.706,2703007.768,214802.38],["HB171",1,2702661.471,215576.126,2702866.699,214746.835],["BA134",1,2702946.415,215364.765,2703151.629,214535.442],["BA136",1,2703033.034,215155.539,2703238.256,214326.202],["BA130",1,2703250.2,215141.838,2703455.404,214312.477],["H327",1,2703356.557,214917.829,2703561.775,214088.437],["H465",1,2703653.234,214528.704,2703858.463,213699.336]]},{"label":"1140625","file":"357-365/成果計算/1140625/363.inp","points":[["A11",1,2704015.977,214781.2,2704221.203,213951.924],["HB869",1,2703467.761,215969.654,2703673.014,215140.403],["HB871",1,2703600.56,216035.852,2703805.783,215206.578],["HB873",1,2703648.088,215908.145,2703853.33,215078.872],["HB874",1,2703678.21,215788.121,2703883.436,214958.85],["HB854",1,2703531.995,215721.152,2703737.218,214891.875],["HB855",1,2703438.956,215677.888,2703644.181,214848.627],["HB857",1,2703341.757,215626.749,2703546.998,214797.464],["HB846",1,2703317.138,215613.831,2703522.365,214784.583],["HB847",1,2703376.276,215578.299,2703581.507,214749.034],["HB848",1,2703420.443,215532.151,2703625.668,214702.883],["QK13",1,2702818.853,215925.976,2703024.052,215096.712],["QK12",1,2702880.739,215927.823,2703085.945,215098.59],["HB126",1,2703680.345,214310.782,2703885.5,213481.495],["HB134",1,2705078.567,215292.718,2705283.825,214463.379],["HB135",1,2704971.053,215196.054,2705176.288,214366.718],["HB136",1,2704956.887,215065.492,2705162.131,214236.158],["BA121",1,2703410.901,215382.65,2703616.129,214553.338],["HB170",1,2702802.568,215631.706,2703007.768,214802.38],["HB171",1,2702661.471,215576.126,2702866.699,214746.835],["BA134",1,2702946.415,215364.765,2703151.629,214535.442],["BA136",1,2703033.034,215155.539,2703238.256,214326.202],["BA130",1,2703250.2,215141.838,2703455.404,214312.477],["H327",1,2703356.557,214917.829,2703561.775,214088.437],["H465",1,2703653.234,214528.704,2703858.463,213699.336],["HB149",1,2703746.868,214350.443,2703952.079,213521.114],["HB155-1",1,2703266.728,214034.901,2703471.965,213205.565],["HB155",1,2703227.971,214110.232,2703433.164,213280.893],["HB131",1,2703208.794,214121.684,2703413.951,213292.344],["HB124",1,2703539.393,214335.965,2703744.579,213506.66]]},{"label":"1140626","file":"357-365/成果計算/1140626/363.inp","points":[["A11",1,2704015.977,214781.2,2704221.203,213951.924],["HB869",1,2703467.761,215969.654,2703673.014,215140.403],["HB871",1,2703600.56,216035.852,2703805.783,215206.578],["HB873",1,2703648.088,215908.145,2703853.33,215078.872],["HB874",1,2703678.21,215788.121,2703883.436,214958.85],["HB854",1,2703531.995,215721.152,2703737.218,214891.875],["HB855",1,2703438.956,215677.888,2703644.181,214848.627],["HB857",1,2703341.757,215626.749,2703546.998,214797.464],["HB846",1,2703317.138,215613.831,2703522.365,214784.583],["HB847",1,2703376.276,215578.299,2703581.507,214749.034],["HB848",1,2703420.443,215532.151,2703625.668,214702.883],["QK13",1,2702818.853,215925.976,2703024.052,215096.712],["QK12",1,2702880.739,215927.823,2703085.945,215098.59],["HB126",1,2703680.345,214310.782,2703885.5,213481.495],["HB134",1,2705078.567,215292.718,2705283.825,214463.379],["HB135",1,2704971.053,215196.054,2705176.288,214366.718],["HB136",1,2704956.887,215065.492,2705162.131,214236.158],["BA121",1,2703410.901,215382.65,2703616.129,214553.338],["HB170",1,2702802.568,215631.706,2703007.768,214802.38],["HB171",1,2702661.471,215576.126,2702866.699,214746.835],["BA134",1,2702946.415,215364.765,2703151.629,214535.442],["BA136",1,2703033.034,215155.539,2703238.256,214326.202],["BA130",1,2703250.2,215141.838,2703455.404,214312.477],["H327",1,2703356.557,214917.829,2703561.775,214088.437],["H465",1,2703653.234,214528.704,2703858.463,213699.336],["HB149",1,2703746.868,214350.443,2703952.079,213521.114],["HB155-1",1,2703266.728,214034.901,2703471.965,213205.565],["HB155",1,2703227.971,214110.232,2703433.164,213280.893],["HB131",1,2703208.794,214121.684,2703413.951,213292.344],["HB124",1,2703539.393,214335.965,2703744.579,213506.66],["AA2",1,2694530.852,215008.487,2694736.314,214179.532]]}]},{"id":"360","name":"360 段","sections":["360"],"note":"說明.txt：1140430 / QW12 QW13已經鑑界驗證，納入已知點","file":"357-365/360/360.inp","npar":6,"colloc":true,"points":[["QW13",1,2704749.264,214808.346,2704954.555,213979.101],["QW12",1,2704734.94,214792.497,2704940.237,213963.27],["QY101",1,2705305.928,215204.128,2705511.196,214374.84],["QY57",1,2705264.474,215256.366,2705469.738,214427.111],["QY58",1,2705429.368,215044.76,2705634.672,214215.547],["QY52",1,2705485.81,215100.406,2705691.118,214271.212]],"samples":[],"history":[{"label":"1140730","file":"357-365/360/計算成果/1140730/360.inp","points":[["WH10",1,2704461.08,215163.086,2704666.323,214333.842],["WH11",1,2704402.112,215185.876,2704607.354,214356.653],["QW13",1,2704749.264,214808.346,2704954.555,213979.101],["QW12",1,2704734.94,214792.497,2704940.237,213963.27]]}]},{"id":"364","name":"364 段","sections":["364"],"note":"","file":"357-365/364/參數計算/1140624/364.inp","npar":6,"colloc":true,"points":[["HB170",1,2702802.568,215631.706,2703007.768,214802.38],["HB171",1,2702661.471,215576.126,2702866.699,214746.835],["BA134",1,2702946.415,215364.765,2703151.629,214535.442],["BA136",1,2703033.034,215155.539,2703238.256,214326.202],["BA130",1,2703250.2,215141.838,2703455.404,214312.477],["H327",1,2703356.557,214917.829,2703561.775,214088.437]],"samples":[["QC1",8,2702726.033,215673.699],["QC2",8,2702659.596,215700.758],["QC3",8,2702678.512,215615.102],["6.14",8,2702667.612,215627.528]],"history":[]},{"id":"367","name":"367 段","sections":["367"],"note":"","file":"367/367.inp","npar":6,"colloc":true,"points":[["GA13",1,2699294.056,216844.448,2699499.318,216015.293],["HA148",1,2700178.558,216959.926,2700383.819,216130.757],["HA149",1,2700246.097,216895.952,2700451.365,216066.791],["HA28",1,2700486.286,217253.05,2700691.564,216423.886],["HA29",1,2700534.16,217193.885,2700739.452,216364.705],["GA20",1,2700793.402,217229.996,2700998.671,216400.82],["HA5",1,2700990.752,217336.099,2701196.029,216506.882],["HA2",1,2700834.293,217536.14,2701039.561,216706.939],["GA02",1,2701057.196,217525.835,2701262.468,216696.642],["HB200",1,2700215.829,216529.929,2700421.112,215700.733],["HB202",1,2700141.675,216457.19,2700346.945,215627.959],["HB203",1,2700089.031,216405.544,2700294.316,215576.369],["HB204",1,2700035.512,216352.954,2700240.796,215523.769],["HB206",1,2699943.376,216263.764,2700148.654,215434.592],["HB207",1,2699879.173,216210.065,2700084.45,215380.891],["HB208",1,2699776.147,216100.451,2699981.438,215271.293],["HB209",1,2699738.933,216062.838,2699944.228,215233.675],["HB210",1,2699657.964,215984.151,2699863.272,215155.002]],"samples":[],"history":[]},{"id":"370-375-376","name":"370、375、376 段（合併）","sections":["370","375","376"],"note":"","file":"370、375、376/370.inp","npar":6,"colloc":true,"points":[["HL187",1,2698317.308,217765.482,2698522.572,216936.37],["HL224",1,2698244.842,217695.861,2698450.115,216866.74],["HL61",1,2698668.019,218130.422,2698873.288,217301.33],["HL51",1,2698703.529,218210.11,2698908.808,217381.06],["HL52",1,2698675.687,218223.8,2698880.985,217394.741],["HL22",1,2698692.643,218423.793,2698897.931,217594.751],["HL23",1,2698661.194,218450.308,2698866.482,217621.26],["HL25",1,2698373.552,218743.535,2698578.879,217914.48],["HL27",1,2697932.684,219183.123,2698137.99,218354.06],["HL28",1,2697848.152,219259.454,2698053.485,218430.39],["HL29",1,2697767.769,219330.694,2697973.092,218501.62],["HL30",1,2697712.25,219370.759,2697917.576,218541.69],["HL15",1,2697701.123,219472.685,2697906.434,218643.581],["HL44",1,2697415.153,219635.082,2697620.474,218806.01],["HL46",1,2697261.035,219658.677,2697466.356,218829.62],["HL81",1,2697151.464,219479.182,2697356.763,218650.11],["HL114",1,2697038.813,219296.253,2697244.143,218467.17],["HL152",1,2696955.055,219169.607,2697160.371,218340.521],["HL145",1,2697459.171,218692.913,2697664.478,217863.841],["HL143",1,2697663.211,218594.536,2697868.506,217765.49],["HL142",1,2697727.33,218497.74,2697932.636,217668.69],["HL138",1,2697998.512,218180.544,2698203.813,217351.441],["HL137",1,2698067.315,218140.087,2698272.604,217311.01],["HL134",1,2698319.281,217946.578,2698524.559,217117.491],["HL132",1,2698484.872,217857.514,2698690.122,217028.421],["HL130",1,2698749.683,217670.679,2698954.934,216841.571],["HL129",1,2698840.504,217609.362,2699045.642,216780.211],["HL126",1,2699026.874,217428.787,2699232.034,216599.641],["HL123",1,2699234.572,217212.676,2699439.71,216383.561],["HL122",1,2699287.199,217147.855,2699492.36,216318.74],["HL326",1,2698897.546,216912.115,2699102.74,216082.941],["HL339",1,2698719.326,216847.403,2698924.56,216018.25],["HL238",1,2697413.178,218360.061,2697618.48,217530.98],["HL198",1,2697565.379,218497.836,2697770.679,217668.77],["HL195",1,2697697.983,218357.291,2697903.282,217528.2],["HL236",1,2697700.611,218156.955,2697905.898,217327.88],["HL235",1,2697707.167,218061.586,2697912.461,217232.51],["HL270",1,2698604.302,217122.716,2698809.482,216293.54],["HL272",1,2698497.66,217189.433,2698702.863,216360.26],["HL273",1,2698397.252,217251.796,2698602.505,216422.63],["HL281",1,2698364.538,217260.488,2698569.807,216431.3],["HL255",1,2696545.678,219241.767,2696751.022,218412.7],["HL317",1,2696509.618,218900.518,2696714.912,218071.44],["HL422",1,2696319.794,218767.609,2696525.098,217938.52],["HL427",1,2696293.83,218744.531,2696499.127,217915.44],["HL426",1,2696344.001,218673.056,2696549.316,217843.95],["HL425",1,2696382.983,218607.6,2696588.3,217778.52],["HL430",1,2696272.989,218634.521,2696478.293,217805.44],["HL386",1,2698468.315,216550.66,2698673.599,215721.47],["HL387",1,2698398.841,216624.841,2698604.115,215795.62],["HL388",1,2698396.91,216674.813,2698602.165,215845.59],["HL392",1,2698241.114,216952.2,2698446.349,216122.95],["HL394",1,2698124.838,217094.814,2698330.085,216265.67],["HL354",1,2697903.069,217383.911,2698108.351,216554.79],["HL402",1,2697460.122,217657.295,2697665.409,216828.21],["HL403",1,2697373.05,217756.245,2697578.352,216927.19],["HL408",1,2697129.59,217967.913,2697334.941,217138.91]],"samples":[],"history":[{"label":"1140702","file":"370、375、376/計算成果/1140702/370.inp","points":[["HL187",1,2698317.308,217765.482,2698522.572,216936.37],["HL224",1,2698244.842,217695.861,2698450.115,216866.74],["HL61",1,2698668.019,218130.422,2698873.288,217301.33],["HL51",1,2698703.529,218210.11,2698908.808,217381.06],["HL52",1,2698675.687,218223.8,2698880.985,217394.741],["HL22",1,2698692.643,218423.793,2698897.931,217594.751],["HL23",1,2698661.194,218450.308,2698866.482,217621.26],["HL25",1,2698373.552,218743.535,2698578.879,217914.48],["HL27",1,2697932.684,219183.123,2698137.99,218354.06],["HL28",1,2697848.152,219259.454,2698053.485,218430.39],["HL29",1,2697767.769,219330.694,2697973.092,218501.62],["HL30",1,2697712.25,219370.759,2697917.576,218541.69],["HL15",1,2697701.123,219472.685,2697906.434,218643.581],["HL44",1,2697415.153,219635.082,2697620.474,218806.01],["HL46",1,2697261.035,219658.677,2697466.356,218829.62],["HL81",1,2697151.464,219479.182,2697356.763,218650.11],["HL114",1,2697038.813,219296.253,2697244.143,218467.17],["HL152",1,2696955.055,219169.607,2697160.371,218340.521],["HL145",1,2697459.171,218692.913,2697664.478,217863.841],["HL143",1,2697663.211,218594.536,2697868.506,217765.49]]},{"label":"1140717","file":"370、375、376/計算成果/1140717/37001.inp","points":[["HL187",1,2698317.308,217765.482,2698522.572,216936.37],["HL224",1,2698244.842,217695.861,2698450.115,216866.74],["HL61",1,2698668.019,218130.422,2698873.288,217301.33],["HL51",1,2698703.529,218210.11,2698908.808,217381.06],["HL52",1,2698675.687,218223.8,2698880.985,217394.741],["HL22",1,2698692.643,218423.793,2698897.931,217594.751],["HL23",1,2698661.194,218450.308,2698866.482,217621.26],["HL25",1,2698373.552,218743.535,2698578.879,217914.48],["HL27",1,2697932.684,219183.123,2698137.99,218354.06],["HL28",1,2697848.152,219259.454,2698053.485,218430.39],["HL29",1,2697767.769,219330.694,2697973.092,218501.62],["HL30",1,2697712.25,219370.759,2697917.576,218541.69],["HL15",1,2697701.123,219472.685,2697906.434,218643.581],["HL44",1,2697415.153,219635.082,2697620.474,218806.01],["HL46",1,2697261.035,219658.677,2697466.356,218829.62],["HL81",1,2697151.464,219479.182,2697356.763,218650.11],["HL114",1,2697038.813,219296.253,2697244.143,218467.17],["HL152",1,2696955.055,219169.607,2697160.371,218340.521],["HL145",1,2697459.171,218692.913,2697664.478,217863.841],["HL143",1,2697663.211,218594.536,2697868.506,217765.49],["HL142",1,2697727.33,218497.74,2697932.636,217668.69],["HL138",1,2697998.512,218180.544,2698203.813,217351.441],["HL137",1,2698067.315,218140.087,2698272.604,217311.01],["HL134",1,2698319.281,217946.578,2698524.559,217117.491],["HL132",1,2698484.872,217857.514,2698690.122,217028.421],["HL130",1,2698749.683,217670.679,2698954.934,216841.571],["HL129",1,2698840.504,217609.362,2699045.642,216780.211],["HL126",1,2699026.874,217428.787,2699232.034,216599.641],["HL123",1,2699234.572,217212.676,2699439.71,216383.561],["HL122",1,2699287.199,217147.855,2699492.36,216318.74],["HL326",1,2698897.546,216912.115,2699102.74,216082.941],["HL339",1,2698719.326,216847.403,2698924.56,216018.25],["HL238",1,2697413.178,218360.061,2697618.48,217530.98],["HL198",1,2697565.379,218497.836,2697770.679,217668.77],["HL195",1,2697697.983,218357.291,2697903.282,217528.2],["HL236",1,2697700.611,218156.955,2697905.898,217327.88],["HL235",1,2697707.167,218061.586,2697912.461,217232.51],["HL270",1,2698604.302,217122.716,2698809.482,216293.54],["HL272",1,2698497.66,217189.433,2698702.863,216360.26],["HL273",1,2698397.252,217251.796,2698602.505,216422.63],["HL281",1,2698364.538,217260.488,2698569.807,216431.3],["HL255",1,2696545.678,219241.767,2696751.022,218412.7],["HL317",1,2696509.618,218900.518,2696714.912,218071.44],["HL422",1,2696319.794,218767.609,2696525.098,217938.52],["HL427",1,2696293.83,218744.531,2696499.127,217915.44],["HL426",1,2696344.001,218673.056,2696549.316,217843.95],["HL425",1,2696382.983,218607.6,2696588.3,217778.52],["HL430",1,2696272.989,218634.521,2696478.293,217805.44]]},{"label":"1140718","file":"370、375、376/計算成果/1140718/370.inp","points":[["HL187",1,2698317.308,217765.482,2698522.572,216936.37],["HL224",1,2698244.842,217695.861,2698450.115,216866.74],["HL61",1,2698668.019,218130.422,2698873.288,217301.33],["HL51",1,2698703.529,218210.11,2698908.808,217381.06],["HL52",1,2698675.687,218223.8,2698880.985,217394.741],["HL22",1,2698692.643,218423.793,2698897.931,217594.751],["HL23",1,2698661.194,218450.308,2698866.482,217621.26],["HL25",1,2698373.552,218743.535,2698578.879,217914.48],["HL27",1,2697932.684,219183.123,2698137.99,218354.06],["HL28",1,2697848.152,219259.454,2698053.485,218430.39],["HL29",1,2697767.769,219330.694,2697973.092,218501.62],["HL30",1,2697712.25,219370.759,2697917.576,218541.69],["HL44",1,2697415.153,219635.082,2697620.474,218806.01],["HL46",1,2697261.035,219658.677,2697466.356,218829.62],["HL81",1,2697151.464,219479.182,2697356.763,218650.11],["HL114",1,2697038.813,219296.253,2697244.143,218467.17],["HL152",1,2696955.055,219169.607,2697160.371,218340.521],["HL145",1,2697459.171,218692.913,2697664.478,217863.841],["HL143",1,2697663.211,218594.536,2697868.506,217765.49],["HL142",1,2697727.33,218497.74,2697932.636,217668.69],["HL138",1,2697998.512,218180.544,2698203.813,217351.441],["HL137",1,2698067.315,218140.087,2698272.604,217311.01],["HL134",1,2698319.281,217946.578,2698524.559,217117.491],["HL132",1,2698484.872,217857.514,2698690.122,217028.421],["HL130",1,2698749.683,217670.679,2698954.934,216841.571],["HL129",1,2698840.504,217609.362,2699045.642,216780.211],["HL126",1,2699026.874,217428.787,2699232.034,216599.641],["HL123",1,2699234.572,217212.676,2699439.71,216383.561],["HL122",1,2699287.199,217147.855,2699492.36,216318.74],["HL326",1,2698897.546,216912.115,2699102.74,216082.941],["HL339",1,2698719.326,216847.403,2698924.56,216018.25],["HL238",1,2697413.178,218360.061,2697618.48,217530.98],["HL198",1,2697565.379,218497.836,2697770.679,217668.77],["HL195",1,2697697.983,218357.291,2697903.282,217528.2],["HL236",1,2697700.611,218156.955,2697905.898,217327.88],["HL235",1,2697707.167,218061.586,2697912.461,217232.51],["HL270",1,2698604.302,217122.716,2698809.482,216293.54],["HL272",1,2698497.66,217189.433,2698702.863,216360.26],["HL273",1,2698397.252,217251.796,2698602.505,216422.63],["HL281",1,2698364.538,217260.488,2698569.807,216431.3],["HL255",1,2696545.678,219241.767,2696751.022,218412.7],["HL317",1,2696509.618,218900.518,2696714.912,218071.44],["HL422",1,2696319.794,218767.609,2696525.098,217938.52],["HL427",1,2696293.83,218744.531,2696499.127,217915.44],["HL426",1,2696344.001,218673.056,2696549.316,217843.95],["HL425",1,2696382.983,218607.6,2696588.3,217778.52],["HL430",1,2696272.989,218634.521,2696478.293,217805.44],["HL386",1,2698468.315,216550.66,2698673.599,215721.47],["HL387",1,2698398.841,216624.841,2698604.115,215795.62],["HL394",1,2698124.838,217094.814,2698330.085,216265.67],["HL354",1,2697903.069,217383.911,2698108.351,216554.79],["HL402",1,2697460.122,217657.295,2697665.409,216828.21]]}]},{"id":"375-old","name":"375 段（合併前單獨參數）","sections":[],"note":"1140717 起 370/375/376 已合併計算，此組僅供查考。","file":"370、375、376/375/375.inp","npar":6,"colloc":true,"points":[["HL142",1,2697727.33,218497.74,2697932.636,217668.69],["HL138",1,2697998.512,218180.544,2698203.813,217351.441],["HL137",1,2698067.315,218140.087,2698272.604,217311.01],["HL134",1,2698319.281,217946.578,2698524.559,217117.491],["HL132",1,2698484.872,217857.514,2698690.122,217028.421],["HL130",1,2698749.683,217670.679,2698954.934,216841.571],["HL129",1,2698840.504,217609.362,2699045.642,216780.211],["HL126",1,2699026.874,217428.787,2699232.034,216599.641],["HL123",1,2699234.572,217212.676,2699439.71,216383.561],["HL122",1,2699287.199,217147.855,2699492.36,216318.74],["HL326",1,2698897.546,216912.115,2699102.74,216082.941],["HL339",1,2698719.326,216847.403,2698924.56,216018.25]],"samples":[],"history":[{"label":"1140703","file":"370、375、376/375/計算成果/1140703/375.inp","points":[["HL142",1,2697727.33,218497.74,2697932.636,217668.69],["HL138",1,2697998.512,218180.544,2698203.813,217351.441],["HL137",1,2698067.315,218140.087,2698272.604,217311.01],["HL134",1,2698319.281,217946.578,2698524.559,217117.491],["HL132",1,2698484.872,217857.514,2698690.122,217028.421],["HL130",1,2698749.683,217670.679,2698954.934,216841.571],["HL129",1,2698840.504,217609.362,2699045.642,216780.211],["HL126",1,2699026.874,217428.787,2699232.034,216599.641],["HL123",1,2699234.572,217212.676,2699439.71,216383.561],["HL122",1,2699287.199,217147.855,2699492.36,216318.74],["HL326",1,2698897.546,216912.115,2699102.74,216082.941],["HL339",1,2698719.326,216847.403,2698924.56,216018.25]]},{"label":"1140703_剔除HL129","file":"370、375、376/375/計算成果/1140703_剔除HL129/375.inp","points":[["HL142",1,2697727.33,218497.74,2697932.636,217668.69],["HL138",1,2697998.512,218180.544,2698203.813,217351.441],["HL137",1,2698067.315,218140.087,2698272.604,217311.01],["HL134",1,2698319.281,217946.578,2698524.559,217117.491],["HL132",1,2698484.872,217857.514,2698690.122,217028.421],["HL130",1,2698749.683,217670.679,2698954.934,216841.571],["HL126",1,2699026.874,217428.787,2699232.034,216599.641],["HL123",1,2699234.572,217212.676,2699439.71,216383.561],["HL122",1,2699287.199,217147.855,2699492.36,216318.74],["HL326",1,2698897.546,216912.115,2699102.74,216082.941],["HL339",1,2698719.326,216847.403,2698924.56,216018.25]]}]},{"id":"376-old","name":"376 段（合併前單獨參數）","sections":[],"note":"1140717 起 370/375/376 已合併計算，此組僅供查考。","file":"370、375、376/376/376.inp","npar":6,"colloc":true,"points":[["HL238",1,2697413.178,218360.061,2697618.48,217530.98],["HL198",1,2697565.379,218497.836,2697770.679,217668.77],["HL195",1,2697697.983,218357.291,2697903.282,217528.2],["HL236",1,2697700.611,218156.955,2697905.898,217327.88],["HL235",1,2697707.167,218061.586,2697912.461,217232.51]],"samples":[],"history":[{"label":"1140710","file":"370、375、376/376/計算成果/1140710/376.inp","points":[["HL238",1,2697413.178,218360.061,2697618.48,217530.98],["HL198",1,2697565.379,218497.836,2697770.679,217668.77],["HL195",1,2697697.983,218357.291,2697903.282,217528.2],["HL236",1,2697700.611,218156.955,2697905.898,217327.88],["HL235",1,2697707.167,218061.586,2697912.461,217232.51]]}]},{"id":"377","name":"377 段","sections":["377"],"note":"","file":"377/377.inp","npar":6,"colloc":true,"points":[["WH10",1,2704461.069,215163.152,2704666.323,214333.842],["WH11",1,2704402.112,215185.876,2704607.354,214356.653],["WH02",1,2704584.426,215149.871,2704789.682,214320.564],["WH17",1,2704531.156,215222.825,2704736.407,214393.514],["WH15",1,2704537.788,215280.621,2704743.066,214451.291],["WH14",1,2704537.079,215313.403,2704742.256,214484.017]],"samples":[["N114406",8,2704638.177,215087.592],["N114405",8,2704412.711,215343.239],["HB547",8,2704603.153,215297.754],["HB548",8,2704462.875,215245.417]],"history":[]},{"id":"378-380","name":"378、379、380 段","sections":["378","379","380"],"note":"","file":"378、379、380/380.inp","npar":6,"colloc":true,"points":[["HB207",1,2700225.278,215158.574,2700430.548,214329.448],["HB124",1,2701375.059,214878.635,2701580.371,214049.442],["HB131",1,2700809.305,214335.804,2701014.584,213506.629],["HB217",1,2700349.526,214613.695,2700554.808,213784.566],["HB222",1,2701175.397,213936.274,2701380.716,213107.087],["HB224",1,2701020.089,214088.232,2701225.371,213259.067],["HB130",1,2700953.549,214448.118,2701158.871,213618.983],["HB112",1,2702181.247,214672.379,2702386.523,213843.15],["HB110",1,2702291.183,214563.29,2702496.47,213734.078],["HB106",1,2702460.843,214158.696,2702666.133,213329.464],["HB103",1,2702487.607,214040.173,2702692.884,213210.958],["HB105",1,2702415.543,214117.171,2702620.809,213287.935],["HB160",1,2701704.125,213877.92,2701909.333,213048.754],["HB154",1,2701654.14,214041.214,2701859.443,213212.077],["HB155",1,2701898.198,214061.96,2702103.484,213232.769],["HB156",1,2702070.463,213899.102,2702275.71,213069.91]],"samples":[],"history":[{"label":"1140723","file":"378、379、380/計算成果/1140723/380.inp","points":[["HB207",1,2700225.278,215158.574,2700430.548,214329.448],["HB124",1,2701375.059,214878.635,2701580.371,214049.442],["HB131",1,2700809.305,214335.804,2701014.584,213506.629],["HB217",1,2700349.526,214613.695,2700554.808,213784.566]]},{"label":"1140819","file":"378、379、380/計算成果/1140819/380.inp","points":[["HB207",1,2700225.278,215158.574,2700430.548,214329.448],["HB124",1,2701375.059,214878.635,2701580.371,214049.442],["HB131",1,2700809.305,214335.804,2701014.584,213506.629],["HB217",1,2700349.526,214613.695,2700554.808,213784.566],["HB222",1,2701175.397,213936.274,2701380.716,213107.087],["HB224",1,2701020.089,214088.232,2701225.371,213259.067],["HB130",1,2700953.549,214448.118,2701158.871,213618.983],["HB112",1,2702181.247,214672.379,2702386.523,213843.15],["HB110",1,2702291.183,214563.29,2702496.47,213734.078],["HB106",1,2702460.843,214158.696,2702666.133,213329.464],["HB103",1,2702487.607,214040.173,2702692.884,213210.958],["HB105",1,2702415.543,214117.171,2702620.809,213287.935],["HB154",1,2701654.14,214041.214,2701859.443,213212.077],["HB155",1,2701898.198,214061.96,2702103.484,213232.769],["HB156",1,2702070.463,213899.102,2702275.71,213069.91]]}]},{"id":"381","name":"381 段","sections":["381"],"note":"","file":"381/381.inp","npar":6,"colloc":true,"points":[["HA123",1,2718334.21,220889.566,2718334.215,220889.638],["BA443",1,2718069.025,220792.964,2718069.014,220793.023],["HA89",1,2717532.008,220592.105,2717531.905,220592.023],["HA88",1,2717547.943,220562.652,2717547.915,220562.641],["HA86",1,2717637.264,220546.291,2717637.244,220546.279],["HA83",1,2717801.588,220629.959,2717801.556,220629.952],["HA82",1,2717873.051,220655.073,2717873.039,220655.08],["HA81",1,2717943.286,220703.169,2717943.281,220703.181],["HA80",1,2717992.948,220715.67,2717992.939,220715.657],["HA46",1,2718155.227,220549.388,2718155.208,220549.422],["HA49",1,2718038.504,220453.459,2718038.492,220453.497],["HA67",1,2718297.412,220376.837,2718297.397,220376.863],["HA02",1,2718346.161,220404.502,2718346.115,220404.502],["HA69",1,2718287.665,220448.686,2718287.656,220448.733],["HA70",1,2718305.94,220486.906,2718305.921,220486.944],["HA71",1,2718285.924,220521.644,2718285.901,220521.693],["HA73",1,2718283.623,220548.373,2718283.586,220548.396],["HA74",1,2718264.458,220572.505,2718264.422,220572.534],["HA64",1,2718222.966,220509.223,2718222.952,220509.255],["HA63",1,2718218.918,220539.761,2718218.898,220539.77]],"samples":[["QY6",8,2718256.046,220949.431],["QY10",8,2718212.605,220921.533]],"history":[]},{"id":"382","name":"382 段","sections":["382"],"note":"說明.txt：GPS座標系 RTCM GNSS_TWD97","file":"382/382.inp","npar":4,"colloc":true,"points":[["HA123",1,2718334.21,220889.566,2718334.215,220889.638],["BA443",1,2718069.025,220792.964,2718069.014,220793.023]],"samples":[["QY6",8,2718256.046,220949.431],["QY10",8,2718212.605,220921.533]],"history":[]},{"id":"383","name":"383 段","sections":["383"],"note":"說明.txt：GPS座標系 RTCM GNSS_TWD97","file":"383/383.inp","npar":4,"colloc":true,"points":[["HA123",1,2718334.21,220889.566,2718334.215,220889.638],["BA443",1,2718069.025,220792.964,2718069.014,220793.023]],"samples":[["QY6",8,2718256.046,220949.431],["QY10",8,2718212.605,220921.533]],"history":[]},{"id":"384","name":"384 段","sections":["384"],"note":"說明.txt：GPS座標系 RTCM GNSS_TWD97","file":"384/384.inp","npar":4,"colloc":true,"points":[["HA123",1,2718334.21,220889.566,2718334.215,220889.638],["BA443",1,2718069.025,220792.964,2718069.014,220793.023]],"samples":[["QY6",8,2718256.046,220949.431],["QY10",8,2718212.605,220921.533]],"history":[]},{"id":"386","name":"386 段","sections":["386"],"note":"建立歷程：其實不需要轉換。","file":"386/386.inp","npar":6,"colloc":true,"points":[["HA524",1,2710150.636,217837.022,2710150.652,217837.005],["HA540",1,2710275.129,217593.771,2710275.086,217593.771],["BA344",1,2710290.595,217483.878,2710290.585,217483.841],["HA532",1,2710133.228,217490.988,2710133.212,217490.99],["HA531",1,2710090.598,217571.386,2710090.586,217571.417],["HA529",1,2710021.234,217676.246,2710021.22,217676.25],["HA527",1,2709992.965,217726.171,2709993.016,217726.17],["HA537",1,2710127.852,217720.538,2710127.845,217720.542]],"samples":[],"history":[]},{"id":"390","name":"390 段","sections":["390"],"note":"","file":"390/390.inp","npar":6,"colloc":true,"points":[["GC07",1,2700460.491,218601.974,2700460.471,218602.027],["BC14",1,2700598.712,218503.749,2700598.674,218503.786],["BC09",1,2700865.117,218092.167,2700865.113,218092.226],["BC11",1,2700824.553,218334.075,2700824.535,218334.139]],"samples":[["201.60",8,2700640.604,218325.085],["202.60",8,2700640.604,218325.077],["203.60",8,2700640.604,218325.06],["204.60",8,2700644.721,218342.795],["205.60",8,2700645.572,218346.513],["206.60",8,2700646.051,218357.473],["207.60",8,2700642.53,218357.952],["208.60",8,2700653.639,218389.645],["209.60",8,2700650.581,218391.965],["210.60",8,2700642.025,218346.797],["211.60",8,2700636.584,218323.1],["212.60",8,2700636.596,218323.102],["213.60",8,2700636.58,218323.096]],"history":[]},{"id":"1100","name":"1100","sections":["1100"],"note":"","file":"1100/1100.inp","npar":4,"colloc":true,"points":[["HF105",1,2704248.659,217269.899,2704248.637,217269.977],["HF104",1,2704385.494,217254.856,2704385.463,217254.921]],"samples":[["106.01",8,2704241.02,217367.926],["107.01",8,2704216.514,217364.238],["108.01",8,2704262.285,217332.725],["109.01",8,2704234.846,217309.737],["110.01",8,2704199.359,217307.494],["111.01",8,2706837.453,216911.928],["112.01",8,2706837.449,216911.923]],"history":[]},{"id":"1112","name":"1112","sections":["1112"],"note":"說明.txt：1140521 / 增加BGC018 BGC019 BGC118為已知點","file":"1112/1112.inp","npar":6,"colloc":true,"points":[["BGC118",1,2709679.147,220329.592,2709679.124,220329.629],["BGC019",1,2709570.356,220329.847,2709570.34,220329.881],["BGC018",1,2709560.995,220224.972,2709560.985,220225.016]],"samples":[],"history":[]}],"log":"1140723\r\n380參數建立\r\n----------------------------------\r\n\r\n1140718\r\n370 375 376已知點新增\r\nHL386\r\nHL387\r\nHL388\r\nHL392\r\nHL394\r\nHL354\r\nHL402\r\nHL403\r\nHL408\r\n----------------------------------\r\n\r\n1140717\r\n370 375 376參數合併計算\r\n----------------------------------\r\n\r\n1140710\r\n376參數建立\r\n----------------------------------\r\n\r\n1140702\r\n370參數建立\r\n----------------------------------\r\n\r\n1140701\r\n386參數建立-其實不需要轉換\r\n----------------------------------\r\n\r\n1140625\r\n357-365已知點新增\r\nHB149  \r\nHB155-1\r\nHB155  \r\nHB131  \r\nHB124  \r\n----------------------------------\r\n\r\n1140624\r\n357-365參數建立\r\nA11  \r\nHB869\r\nHB871\r\nHB873\r\nHB874\r\nHB854\r\nHB855\r\nHB857\r\nHB846\r\nHB847\r\nHB848\r\nQK13 \r\nQK12 \r\nHB126\r\nHB134\r\nHB135\r\nHB136\r\nBA121\r\nHB170\r\nHB171\r\nBA134\r\nBA136\r\nBA130\r\nH327 \r\nH465 \r\n\r\n新計算圖根點\r\nHB816\r\nHB776\r\nHB111\r\nHB636\r\n\r\n改算\r\nHB172\r\n\r\n----------------------------------\r\n\r\n1140619\r\n377參數建立 已知點新增\r\nWH10\r\nWH11\r\nWH02\r\nWH17\r\nWH15\r\nWH14\r\n\r\n新設及改算圖根點\r\nN114406\r\nN114405\r\nHB547  \r\nHB548  \r\n----------------------------------\r\n\r\n1140616\r\n349-353已知點新增\r\nHB175\r\nHB174\r\nHB173\r\nHB172\r\nHB171\r\nHB170\r\nB2   \r\nHB161\r\nHB160\r\nHB159\r\nB3   \r\n----------------------------------\r\n\r\n1140612\r\n381已知點新增\r\nHA89\r\nHA88\r\nHA86\r\nHA83\r\nHA82\r\nHA81\r\nHA80\r\nHA46\r\nHA49\r\nHA67\r\nHA02\r\nHA69\r\nHA70\r\nHA71\r\nHA73\r\nHA74\r\nHA64\r\nHA63\r\n----------------------------------\r\n\r\n1140611\r\n367參數建立\r\n----------------------------------\r\n\r\n1140610\r\n新設圖根計算成果\r\nN114402   重算 B520及B674\r\nN114029\r\nN114030\r\nN114031\r\nN114032\r\nN114033\r\nN114034\r\nN114035\r\nN114036\r\nN114037\r\nN114038\r\nN114039\r\nN114040\r\nN114041\r\nN114042\r\nN114043\r\nN114045\r\n----------------------------------\r\n\r\n1140604\r\n349增加\r\nB692\r\nBA32\r\nB662\r\nBA44\r\nBA41\r\nB648\r\nB647\r\nB646\r\nB645\r\nB668\r\nB643\r\n為已知點\r\n----------------------------------\r\n\r\n1140502\r\n349增加補點Q52 QW1為已知點\r\n重算H395 H397\r\n----------------------------------\r\n\r\n1140317\r\n349\r\nH375 有問題 剔除後正常\r\nGPS座標系 RTCM GNSS_TWD97","hash":"d438913ae5","built":"2026-11-10"}</script>
+<script>
+/* ==========================================================================
+ * 坐標轉換引擎 — 忠實移植國土測繪中心 TRANSFN1.FOR (成大測量系 1993/1996/2001)
+ *   1. Helmert 4 參數 / Affine 6 參數 最小二乘轉換
+ *   2. 最小二乘配置 (least squares collocation, 線性協方差函數) 殘差內插
+ *   3. 原程式輸出檔 (*.out, AFFINE6.OUT, HELMERT4.OUT, resid.ne, interp.in,
+ *      interp.out, chkdist.00x) 逐字重現
+ * 「相容模式」會照原程式把中間檔 (resid.ne / interp.in) 取至 mm 再進行配置，
+ * 以確保與 t.exe 結果逐位一致。
+ * ======================================================================== */
+const Engine = (() => {
+  'use strict';
+
+  /* ---------------- Fortran 風格格式化 ---------------- */
+  function fF(x, w, d) {
+    if (!isFinite(x)) return '*'.repeat(w);
+    let s = Math.abs(x).toFixed(d);
+    // 原程式編譯器：四捨五入後為 0 時不印負號
+    if (x < 0 && Number(s) !== 0) s = '-' + s;
+    if (s.length > w) s = s.replace(/^(-?)0\./, '$1.');
+    if (s.length > w) return '*'.repeat(w);
+    return s.padStart(w);
+  }
+  function fE(x, w, d) {
+    if (!isFinite(x)) return '*'.repeat(w);
+    let mant, ex;
+    if (x === 0) { mant = '0'.repeat(d); ex = 0; }
+    else {
+      const t = Math.abs(x).toExponential(d - 1); // "1.01872e-6"
+      const [m, e] = t.split('e');
+      mant = m.replace('.', '');
+      ex = parseInt(e, 10) + 1;
+    }
+    let s = '0.' + mant + 'E' + (ex < 0 ? '-' : '+') + String(Math.abs(ex)).padStart(2, '0');
+    if (x < 0) s = '-' + s;
+    if (s.length > w) s = s.replace(/^(-?)0\./, '$1.');
+    if (s.length > w) return '*'.repeat(w);
+    return s.padStart(w);
+  }
+  const fI = (n, w) => { const s = String(n); return s.length > w ? '*'.repeat(w) : s.padStart(w); };
+  const fA = (s, w) => (String(s) + ' '.repeat(w)).slice(0, w);
+  const r3 = x => { const v = Number(x.toFixed(3)); return v === 0 ? 0 : v; };
+
+  /* ---------------- 解析 ---------------- */
+  // .inp：PTNAME(A8) IP(I1) NC EC XC YC
+  function parseInp(text) {
+    const rows = [];
+    String(text).split(/\r?\n/).forEach((line, idx) => {
+      const raw = line.replace(/\u001a/g, '');
+      if (!raw.trim()) return;
+      const t = raw.trim().split(/[\s,]+/);
+      if (t.length < 4) return;
+      const ip = parseInt(t[1], 10);
+      if (!(ip >= 0 && ip <= 9)) return;
+      const nums = t.slice(2).map(Number);
+      if (nums.slice(0, 2).some(v => !isFinite(v))) return;
+      rows.push({ name: t[0].slice(0, 8), ip, n1: nums[0], e1: nums[1],
+        n2: isFinite(nums[2]) ? nums[2] : 0, e2: isFinite(nums[3]) ? nums[3] : 0, line: idx + 1 });
+    });
+    return rows;
+  }
+  function writeInp(rows) {
+    return rows.map(r => {
+      let s = fA(r.name, 8) + ' ' + fI(r.ip, 1) + ' ' + fF(r.n1, 14, 3) + ' ' + fF(r.e1, 14, 3);
+      if (r.ip < 7) s += ' ' + fF(r.n2, 14, 3) + ' ' + fF(r.e2, 14, 3);
+      return s;
+    }).join('\r\n') + '\r\n';
+  }
+
+  // NECEXE 重測系統 .COA 界址點坐標檔
+  //   首行：段代碼 ...；之後每行 I5 + 旗標(1) + N(F16) + E(F15) + 旗標(1)
+  function parseCOA(text) {
+    const lines = String(text).split(/\r?\n/);
+    let header = null; const rows = []; const bad = [];
+    const re = /^(.{5})(.)(\s*\d{6,7}\.\d+?)(\d{5,6}\.\d+)(.?)\s*$/;
+    lines.forEach((line, i) => {
+      if (!line.trim()) return;
+      if (header === null && /^[A-Za-z]{2}\d{4}/.test(line.trim())) { header = line; return; }
+      let m = null;
+      if (line.length >= 37 && /^\s*\d+$/.test(line.slice(0, 5))) {
+        const nS = line.slice(6, 22), eS = line.slice(22, 37);
+        if (/^\s*\d+\.\d+$/.test(nS) && /^\s*\d+\.\d+$/.test(eS))
+          m = { no: line.slice(0, 5).trim(), f1: line[5], nS, eS, f2: line.slice(37) };
+      }
+      if (!m) { const g = re.exec(line); if (g) m = { no: g[1].trim(), f1: g[2], nS: g[3], eS: g[4], f2: g[5] }; }
+      if (!m) { bad.push(i + 1); return; }
+      const dN = (m.nS.split('.')[1] || '').length, dE = (m.eS.split('.')[1] || '').length;
+      rows.push({ name: m.no, f1: m.f1, f2: m.f2, n: Number(m.nS), e: Number(m.eS), wN: m.nS.length, wE: m.eS.length, dN, dE });
+    });
+    return { header: header || '', rows, bad };
+  }
+  function writeCOA(coa, coords, decimals) {
+    const out = [];
+    if (coa.header) out.push(coa.header);
+    coa.rows.forEach((r, i) => {
+      const c = coords[i];
+      // decimals：先取至指定位數，再以原檔小數位數 (補 0) 輸出，維持定寬欄位
+      const rd = (v, d) => decimals != null ? Number(v.toFixed(Math.min(decimals, d))) : v;
+      out.push(fI(r.name, 5) + r.f1 + fF(rd(c.n, r.dN), r.wN, r.dN) + fF(rd(c.e, r.dE), r.wE, r.dE) + r.f2);
+    });
+    return out.join('\r\n') + '\r\n';
+  }
+
+  // 多點文字/CSV：自動判斷分隔與欄位
+  function splitTable(text) {
+    const lines = String(text).replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return { rows: [], delim: ',' };
+    const sample = lines.slice(0, 20).join('\n');
+    let delim = /\t/.test(sample) ? '\t' : /,/.test(sample) ? ',' : /;/.test(sample) ? ';' : 'ws';
+    const rows = lines.map(l => delim === 'ws' ? l.trim().split(/\s+/) : l.split(delim).map(s => s.trim().replace(/^"(.*)"$/, '$1')));
+    return { rows, delim };
+  }
+  function guessColumns(rows) {
+    const nCol = Math.max(...rows.slice(0, 50).map(r => r.length));
+    const body = rows.slice(0, 200);
+    const stat = [];
+    for (let c = 0; c < nCol; c++) {
+      let num = 0, nLike = 0, eLike = 0, txt = 0, tot = 0;
+      body.forEach(r => {
+        const v = r[c]; if (v == null || v === '') return; tot++;
+        const x = Number(v);
+        if (isFinite(x)) { num++; if (x > 2.3e6 && x < 2.9e6) nLike++; else if (x > 1.0e5 && x < 4.0e5) eLike++; }
+        else txt++;
+      });
+      stat.push({ c, num, nLike, eLike, txt, tot });
+    }
+    const pick = key => { let best = -1, bv = 0; stat.forEach(s => { if (s[key] > bv) { bv = s[key]; best = s.c; } }); return best; };
+    const nc = pick('nLike'), ec = pick('eLike');
+    let name = -1, bt = 0;
+    stat.forEach(s => { if (s.c !== nc && s.c !== ec && s.txt > bt) { bt = s.txt; name = s.c; } });
+    if (name < 0) name = (nc === 0 || ec === 0) ? -1 : 0;
+    const hasHeader = rows.length > 1 && nc >= 0 && !isFinite(Number(rows[0][nc]));
+    return { name, n: nc, e: ec, hasHeader, nCol };
+  }
+
+  /* ---------------- 線性代數 ---------------- */
+  function symInverse(N) { // Cholesky 逆矩陣 (對稱正定)
+    const n = N.length, L = N.map(r => r.slice());
+    for (let j = 0; j < n; j++) {
+      let s = L[j][j];
+      for (let k = 0; k < j; k++) s -= L[j][k] * L[j][k];
+      if (!(s > 1e-8 * Math.abs(N[j][j])) || s <= 0) throw new Error('法方程式奇異，控制點幾何不足（點重複或共線）。');
+      L[j][j] = Math.sqrt(s);
+      for (let i = j + 1; i < n; i++) {
+        let t = L[i][j];
+        for (let k = 0; k < j; k++) t -= L[i][k] * L[j][k];
+        L[i][j] = t / L[j][j];
+      }
+      for (let k = j + 1; k < n; k++) L[j][k] = 0;
+    }
+    const inv = Array.from({ length: n }, () => new Array(n).fill(0));
+    for (let c = 0; c < n; c++) {
+      const y = new Array(n).fill(0);
+      for (let i = 0; i < n; i++) { let t = i === c ? 1 : 0; for (let k = 0; k < i; k++) t -= L[i][k] * y[k]; y[i] = t / L[i][i]; }
+      for (let i = n - 1; i >= 0; i--) { let t = y[i]; for (let k = i + 1; k < n; k++) t -= L[k][i] * inv[k][c]; inv[i][c] = t / L[i][i]; }
+    }
+    return inv;
+  }
+
+  // 原程式 SINV + DMFSD（壓縮上三角對稱矩陣求逆，1-based），逐步重現以確保參數逐位一致
+  function DMFSD(A, n, eps) {
+    let ier = 0, kpiv = 0, dpiv = 0;
+    for (let k = 1; k <= n; k++) {
+      kpiv += k;
+      let ind = kpiv;
+      const lend = k - 1;
+      const tol = Math.abs(eps * A[kpiv]);
+      for (let i = k; i <= n; i++) {
+        let dsum = 0;
+        for (let l = 1; l <= lend; l++) dsum += A[kpiv - l] * A[ind - l];
+        dsum = A[ind] - dsum;
+        if (i === k) {
+          if (dsum - tol <= 0) {
+            if (dsum <= 0) return -1;
+            if (ier <= 0) ier = k - 1;
+          }
+          dpiv = Math.sqrt(dsum);
+          A[kpiv] = dpiv;
+          dpiv = 1 / dpiv;
+        } else A[ind] = dsum * dpiv;
+        ind += i;
+      }
+    }
+    return ier;
+  }
+  function SINV(A, n, eps) {
+    const ier = DMFSD(A, n, eps);
+    if (ier < 0) return ier;
+    let ipiv = n * (n + 1) / 2, ind = ipiv, min;
+    for (let i = 1; i <= n; i++) {
+      const din = 1 / A[ipiv];
+      A[ipiv] = din;
+      min = n;
+      const kend = i - 1, lanf = n - kend;
+      if (kend > 0) {
+        let j = ind;
+        for (let k = 1; k <= kend; k++) {
+          let work = 0;
+          min--;
+          let lhor = ipiv, lver = j;
+          for (let l = lanf; l <= min; l++) { lver++; lhor += l; work += A[lver] * A[lhor]; }
+          A[j] = -work * din;
+          j -= min;
+        }
+      }
+      ipiv -= min;
+      ind--;
+    }
+    for (let i = 1; i <= n; i++) {
+      ipiv += i;
+      let j = ipiv;
+      for (let k = i; k <= n; k++) {
+        let work = 0, lhor = j;
+        for (let l = k; l <= n; l++) { const lver = lhor + k - i; work += A[lhor] * A[lver]; lhor += l; }
+        A[j] = work;
+        j += k;
+      }
+    }
+    return ier;
+  }
+
+  // 原程式 subroutine inv (nter=1 → 解向量)；壓縮上三角, L=C*(C-1)/2+R, 1-based
+  function invSolve(a, b, lc, tol) {
+    let is = 0;
+    for (let ic = 1; ic <= lc; ic++) {
+      const ic0 = ic * (ic - 1) / 2;
+      let icr = ic0 + ic;
+      const ai = a[icr];
+      icr = ic0 + 1;
+      if (ic !== 1) {
+        a[icr] = a[1] * a[icr];
+        for (let jc = 2; jc <= ic; jc++) {
+          const jc1 = jc - 1, jc0 = jc * jc1 / 2;
+          let sum = 0;
+          for (let kr = 1; kr <= jc1; kr++) sum += a[jc0 + kr] * a[ic0 + kr];
+          icr = ic0 + jc;
+          a[icr] = a[icr] - sum;
+          if (jc === ic) break;
+          a[icr] = a[jc0 + jc] * a[icr];
+        }
+      }
+      if (a[icr] > tol * ai) a[icr] = 1 / Math.sqrt(a[icr]);
+      else { is++; a[icr] = 0; }
+    }
+    // reduce
+    b[1] = a[1] * b[1];
+    let jc0 = 0;
+    for (let jc = 2; jc <= lc; jc++) {
+      const jc1 = jc - 1; jc0 += jc1;
+      let sum = 0;
+      for (let kr = 1; kr <= jc1; kr++) sum += a[jc0 + kr] * b[kr];
+      b[jc] = a[jc0 + jc] * (b[jc] - sum);
+    }
+    // solve
+    const lc2 = lc + 2;
+    for (let j = 2; j <= lc; j++) {
+      const jc = lc2 - j, jc1 = jc - 1, j0 = jc * jc1 / 2;
+      b[jc] = a[j0 + jc] * b[jc];
+      const x = -b[jc];
+      for (let kr = 1; kr <= jc1; kr++) b[kr] += x * a[j0 + kr];
+    }
+    b[1] = a[1] * b[1];
+    return is;
+  }
+
+  /* ---------------- 轉換模型 ---------------- */
+  const covf = (c, a, d) => (d > a ? 0 : c * (1 - d / a));
+  const varOfIp = ip => ip === 1 ? 0 : ip === 2 ? 0.05 ** 2 : 0.10 ** 2;
+
+  function collocComponent(refs, vals, varr) {
+    const n = refs.length;
+    const ave = vals.reduce((s, v) => s + v, 0) / n;
+    const l = vals.map(v => v - ave);
+    const cov0 = l.reduce((s, v) => s + v * v, 0) / n;
+    const c = cov0; // filternoise = 0
+    let distmax = 0;
+    for (let i = 0; i < n - 1; i++) for (let j = i + 1; j < n - 1; j++) {
+      const d = Math.sqrt((refs[j].x - refs[i].x) ** 2 + (refs[j].y - refs[i].y) ** 2);
+      if (d > distmax) distmax = d;
+    }
+    if (distmax > 20000) distmax = 20000;
+    const a = distmax * 1e-3;
+    const A = new Float64Array(n * (n + 1) / 2 + 1);
+    const loc = (i, j) => { const l1 = Math.min(i, j), m = Math.max(i, j); return m * (m - 1) / 2 + l1; };
+    for (let i = 1; i <= n; i++) for (let j = i; j <= n; j++) {
+      const d = Math.sqrt((refs[i - 1].x - refs[j - 1].x) ** 2 + (refs[i - 1].y - refs[j - 1].y) ** 2) * 1e-3;
+      A[loc(i, j)] = (a > 0 ? covf(c, a, d) : 0) + (i === j ? varr[i - 1] : 0);
+    }
+    const b = new Float64Array(n + 2);
+    for (let i = 1; i <= n; i++) b[i] = l[i - 1];
+    const is = invSolve(A, b, n, 1e-12);
+    return { c, a, ave, std: Math.sqrt(vals.reduce((s, v) => s + v * v, 0) / n), w: Array.from(b.slice(1, n + 1)), singular: is, distmax };
+  }
+
+  /**
+   * fit(rows, opt) — rows 為 .inp 列 (含待求點亦可)，ip<7 為控制點。
+   * opt: { npar: 4|6, colloc: bool, compat: bool, origin: {n,e} }
+   */
+  function fit(rows, opt = {}) {
+    const npar = opt.npar === 4 ? 4 : 6;
+    const compat = opt.compat !== false;
+    const ctrl = rows.filter(r => r.ip < 7);
+    if (!ctrl.length) throw new Error('沒有控制點 (IP<7)。');
+    const o = opt.origin || { n: rows[0].n1, e: rows[0].e1 };
+    const nc0 = o.n, ec0 = o.e;
+    const N = Array.from({ length: npar }, () => new Array(npar).fill(0));
+    const U = new Array(npar).fill(0);
+    ctrl.forEach(p => {
+      const dn = p.n1 - nc0, de = p.e1 - ec0;
+      const A = npar === 4 ? [[dn, de, 1, 0], [de, -dn, 0, 1]] : [[dn, de, 1, 0, 0, 0], [0, 0, 0, dn, de, 1]];
+      const L = [p.n2 - nc0, p.e2 - ec0];
+      for (let i = 0; i < npar; i++)
+        for (let j = 0; j < npar; j++) { N[i][j] += A[0][i] * A[0][j]; N[i][j] += A[1][i] * A[1][j]; }
+      for (let i = 0; i < npar; i++) { U[i] += A[0][i] * L[0]; U[i] += A[1][i] * L[1]; }
+    });
+    const df = 2 * ctrl.length - npar;
+    if (df < 0) throw new Error(`控制點數不足：${ctrl.length} 點無法解算 ${npar} 參數（至少需要 ${npar / 2} 點）。`);
+    let Q;
+    if (compat) {
+      const AA = new Float64Array(npar * (npar + 1) / 2 + 1);
+      for (let i = 1; i <= npar; i++) for (let j = 1; j <= i; j++) AA[i * (i - 1) / 2 + j] = N[j - 1][i - 1];
+      if (SINV(AA, npar, 1e-8) < 0) throw new Error('法方程式奇異，控制點幾何不足（點重複或共線）。');
+      Q = Array.from({ length: npar }, () => new Array(npar).fill(0));
+      for (let i = 1; i <= npar; i++) for (let j = i; j <= npar; j++) Q[i - 1][j - 1] = Q[j - 1][i - 1] = AA[j * (j - 1) / 2 + i];
+    } else Q = symInverse(N);
+    const X = Q.map(r => { let s = 0; for (let j = 0; j < npar; j++) s += r[j] * U[j]; return s; });
+    const model = { npar, compat, nc0, ec0, X, Q, df, nctrl: ctrl.length };
+    const residuals = [];
+    let vv = 0;
+    ctrl.forEach(p => {
+      const t = affine(model, p.n1, p.e1);
+      if (p.ip < 6) {
+        const vn = t.n - p.n2, ve = t.e - p.e2;
+        vv += vn * vn + ve * ve;
+        residuals.push({ name: p.name, ip: p.ip, vn, ve, fn: t.n, fe: t.e, p });
+      }
+    });
+    model.vv = vv;
+    model.sd0 = df > 1 ? Math.sqrt(vv / df) : 0;
+    model.sigLegacy = X.map((_, i) => model.sd0 * Q[i][i]);       // 原程式列印值 SD0*Qii
+    model.sig = X.map((_, i) => model.sd0 * Math.sqrt(Q[i][i]));   // 正確中誤差
+    model.residuals = residuals;
+    model.warnings = [];
+    if (df <= 1) model.warnings.push(`自由度 ${df}：控制點數恰好足夠解算，無法評估精度。`);
+    // 最小二乘配置
+    model.colloc = null;
+    if (opt.colloc !== false && residuals.length >= 2) {
+      const refs = residuals.map(r => ({
+        name: r.name, ip: r.ip,
+        x: compat ? r3(r.p.n2) : r.p.n2, y: compat ? r3(r.p.e2) : r.p.e2,
+        vn: compat ? r3(-r.vn) : -r.vn, ve: compat ? r3(-r.ve) : -r.ve,
+      }));
+      const n = refs.length;
+      const varr = new Array(n).fill(0);
+      if (compat) for (let k = 0; k < n - 1; k++) varr[k + 1] = varOfIp(refs[k].ip); // 原程式索引位移
+      else for (let k = 0; k < n; k++) varr[k] = varOfIp(refs[k].ip);
+      const cn = collocComponent(refs, refs.map(r => r.vn), varr);
+      const ce = collocComponent(refs, refs.map(r => r.ve), varr);
+      model.colloc = { refs, n: cn, e: ce };
+      if (cn.a <= 0) model.warnings.push('配置相關距離為 0（控制點不足 3 點），配置改正量為 0。');
+    }
+    return model;
+  }
+
+  function affine(m, n, e) {
+    const dn = n - m.nc0, de = e - m.ec0, X = m.X;
+    if (m.npar === 4) return { n: dn * X[0] + de * X[1] + X[2] + m.nc0, e: -dn * X[1] + de * X[0] + X[3] + m.ec0 };
+    return { n: dn * X[0] + de * X[1] + X[2] + m.nc0, e: dn * X[3] + de * X[4] + X[5] + m.ec0 };
+  }
+  function collocAt(m, x, y) {
+    const C = m.colloc; if (!C) return { dn: 0, de: 0 };
+    const one = comp => {
+      if (!(comp.a > 0)) return 0;
+      let s = 0;
+      for (let j = 0; j < C.refs.length; j++) {
+        const d = Math.sqrt((x - C.refs[j].x) ** 2 + (y - C.refs[j].y) ** 2) * 1e-3;
+        s += covf(comp.c, comp.a, d) * comp.w[j];
+      }
+      return s + comp.ave;
+    };
+    return { dn: one(C.n), de: one(C.e) };
+  }
+  // 正算：得 { an, ae (仿射), dn, de (配置改正), n, e (成果) }
+  function forward(m, n, e, useColloc = true, compat = m.compat) {
+    const t = affine(m, n, e);
+    if (!useColloc || !m.colloc) return { an: t.n, ae: t.e, dn: 0, de: 0, n: t.n, e: t.e };
+    const x = compat ? r3(t.n) : t.n, y = compat ? r3(t.e) : t.e;
+    const c = collocAt(m, x, y);
+    return { an: t.n, ae: t.e, dn: c.dn, de: c.de, n: compat ? r3(x + c.dn) : x + c.dn, e: compat ? r3(y + c.de) : y + c.de };
+  }
+  // 反算 (迭代反解正算模型)
+  function inverse(m, n, e, useColloc = true) {
+    const X = m.X;
+    const J = m.npar === 4 ? [[X[0], X[1]], [-X[1], X[0]]] : [[X[0], X[1]], [X[3], X[4]]];
+    const det = J[0][0] * J[1][1] - J[0][1] * J[1][0];
+    const solve = (rn, re) => ({ dn: (J[1][1] * rn - J[0][1] * re) / det, de: (-J[1][0] * rn + J[0][0] * re) / det });
+    let s = { n: n - (affine(m, n, e).n - n), e: e - (affine(m, n, e).e - e) };
+    let it = 0;
+    for (; it < 30; it++) {
+      const f = forward(m, s.n, s.e, useColloc, false);
+      const d = solve(n - f.n, e - f.e);
+      s.n += d.dn; s.e += d.de;
+      if (Math.abs(d.dn) < 1e-7 && Math.abs(d.de) < 1e-7) break;
+    }
+    const f = forward(m, s.n, s.e, useColloc, false);
+    return { n: s.n, e: s.e, an: f.an, ae: f.ae, dn: f.dn, de: f.de, iter: it + 1 };
+  }
+  const swapRows = rows => rows.map(r => r.ip < 7 ? { ...r, n1: r.n2, e1: r.e2, n2: r.n1, e2: r.e1 } : { ...r });
+
+  /* ---------------- 幾何檢核 ---------------- */
+  function hull(pts) {
+    const p = pts.map(q => [q.e, q.n]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    if (p.length < 3) return p;
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+  function inHull(h, n, e) {
+    if (h.length < 3) return false;
+    for (let i = 0; i < h.length; i++) {
+      const a = h[i], b = h[(i + 1) % h.length];
+      if ((b[0] - a[0]) * (n - a[1]) - (b[1] - a[1]) * (e - a[0]) < -1e-9) return false;
+    }
+    return true;
+  }
+  function geomChecker(ctrlPts) { // ctrlPts: [{n,e,name}]
+    const h = hull(ctrlPts);
+    return (n, e) => {
+      let best = Infinity, who = '';
+      ctrlPts.forEach(c => { const d = Math.hypot(c.n - n, c.e - e); if (d < best) { best = d; who = c.name; } });
+      return { nearest: best, nearestName: who, inside: inHull(h, n, e) };
+    };
+  }
+
+  /* ---------------- 原程式輸出檔 ---------------- */
+  const ATAN1 = (dx, dy) => {
+    const PI = 3.1415926535898;
+    if (dx === 0) return dy < 0 ? 3 * PI / 2 : dy === 0 ? 0 : PI / 2;
+    let a = Math.atan(dy / dx);
+    if (dx < 0) a += PI; else if (a < 0) a += 2 * PI;
+    return a;
+  };
+  const RADDMS1 = az => {
+    let ak = az * 57.29577951308;
+    const id1 = Math.trunc(ak);
+    const im1 = Math.trunc((ak - id1) * 60);
+    const s1 = (((ak - id1) * 60) - im1) * 60;
+    return id1 + im1 / 100 + s1 / 10000;
+  };
+
+  function distChecks(ctrl) {
+    const out = []; let dppm = 0;
+    for (let i = 0; i < ctrl.length; i++) for (let j = i + 1; j < ctrl.length; j++) {
+      const a = ctrl[i], b = ctrl[j];
+      const d1 = Math.hypot(a.n1 - b.n1, a.e1 - b.e1), d2 = Math.hypot(a.n2 - b.n2, a.e2 - b.e2);
+      const dd = d1 - d2;
+      const valid = Math.abs(dd) > 1e-5;
+      if (valid) dppm = d2 / dd;
+      out.push({ from: a.name, to: b.name, d1, d2, dd, ratio: dppm, valid });
+    }
+    return out;
+  }
+  function azChecks(ctrl) {
+    const out = [];
+    for (let i = 0; i < ctrl.length; i++) for (let j = i + 1; j < ctrl.length; j++) {
+      const a = ctrl[i], b = ctrl[j];
+      const z1 = ATAN1(b.n1 - a.n1, b.e1 - a.e1), z2 = ATAN1(b.n2 - a.n2, b.e2 - a.e2);
+      out.push({ from: a.name, to: b.name, z1: RADDMS1(z1), z2: RADDMS1(z2), dz: RADDMS1(z1 - z2) * 10000, dzRad: z1 - z2 });
+    }
+    return out;
+  }
+
+  function legacyFiles(rows, model, baseName = 'trans') {
+    const ctrl = rows.filter(r => r.ip < 7);
+    const L = [];
+    const dash48 = ' ' + '-'.repeat(48), dash78 = '-'.repeat(78);
+    L.push('', '    NAME' + ' '.repeat(11) + ' VX' + ' '.repeat(11) + ' VY', dash48);
+    model.residuals.forEach(r => L.push('   ' + fA(r.name, 8) + '   ' + fF(r.vn, 10, 6) + '   ' + fF(r.ve, 10, 6)));
+    L.push(dash48);
+    if (model.df > 1) {
+      L.push('', '    SUM OF [VV] =' + fF(model.vv, 10, 4), '    DEGREE OF FREEDOM =' + fI(model.df, 4));
+      L.push('    STANDARD ERROR =' + fF(model.sd0, 10, 4) + ' [M]', '', '');
+      L.push(dash48);
+    }
+    model.X.forEach((x, i) => L.push('   A(' + (i + 1) + ')=' + fF(x, 20, 11) + '    +-' + fE(model.sigLegacy[i], 12, 6)));
+    L.push(dash48, ' ', '', '\f');
+    const chk = { '000': [], '001': [], '002': [], '003': [], '004': [] };
+    const hdrD = ['', '   FROM  ' + ' '.repeat(8) + '  TO   ' + '   ' + '  GPS  ' + ' '.repeat(6) + ' GROUND  ' + ' DIFFERENCE ' + '  ' + '1/ PPM   TEST  ', dash78];
+    if (ctrl.length > 1) {
+      L.push('', '', '', '   DISTANCE  CHECK : ', ...hdrD);
+      ['001', '002', '003', '004'].forEach(k => chk[k].push(...hdrD));
+      distChecks(ctrl).forEach(d => {
+        const s = ' ' + fA(d.from, 8) + ' ---> ' + fA(d.to, 8) + fF(d.d1, 13, 4) + fF(d.d2, 13, 4) + ' ' + fF(d.dd, 8, 4) + '  ' + fF(d.ratio, 10, 1);
+        L.push(s);
+        const q = Math.abs(d.ratio);
+        chk[q < 5000 ? '000' : q < 10000 ? '001' : q < 15000 ? '002' : q < 20000 ? '003' : '004'].push(s);
+      });
+      L.push(dash78);
+      L.push('', '   AZIMUTH   CHECK : ', '', '   FROM  ' + ' '.repeat(8) + '  TO   ' + '   ' + '  GPS  ' + ' '.repeat(6) + ' GROUND  ' + 'DIFFERENCE(SEC)' + '  TEST ', dash78);
+      azChecks(ctrl).forEach(z => L.push(' ' + fA(z.from, 8) + ' ---> ' + fA(z.to, 8) + fF(z.z1, 13, 6) + fF(z.z2, 13, 6) + ' ' + fF(z.dz, 8, 2)));
+      L.push(dash78, ' ', '', '\f');
+    }
+    const files = {};
+    files[baseName + '.inp'] = writeInp(rows);
+    files[baseName + '.out'] = L.join('\r\n') + '\r\n';
+    // AFFINE6.OUT / HELMERT4.OUT
+    const T = ['', '  NAME' + ' '.repeat(11) + 'N_COORD' + ' '.repeat(8) + 'E_COORD' + ' '.repeat(7) + 'TR_XCOORD' + ' '.repeat(6) + 'TR_YCOORD', ' ' + '-'.repeat(75)];
+    const interpIn = [], targets = [];
+    rows.forEach(r => {
+      if (r.ip < 9) {
+        const t = affine(model, r.n1, r.e1);
+        T.push(' ' + fA(r.name, 8) + ' ' + fI(r.ip, 1) + ' ' + fF(r.n1, 14, 4) + ' ' + fF(r.e1, 14, 4) + ' ' + fF(t.n, 14, 4) + ' ' + fF(t.e, 14, 4));
+        interpIn.push(fA(r.name, 8) + fF(t.n, 15, 3) + fF(t.e, 15, 3));
+        targets.push({ r, t });
+      }
+    });
+    T.push(' ' + '-'.repeat(75), ' ', '', '\f');
+    files[model.npar === 4 ? 'HELMERT4.OUT' : 'AFFINE6.OUT'] = T.join('\r\n') + '\r\n';
+    const R = ['station wt   Ngrid   Egrid     Ngps    Egps    Nv    Ev', ' ' + '-'.repeat(78)];
+    model.residuals.forEach(r => R.push(fA(r.name, 8) + fI(r.ip, 2) + fF(r.p.n2, 13, 3) + fF(r.p.e2, 13, 3) + fF(r.fn, 13, 3) + fF(r.fe, 13, 3) + fF(-r.vn, 8, 3) + fF(-r.ve, 8, 3)));
+    files['resid.ne'] = R.join('\r\n') + '\r\n';
+    files['interp.in'] = interpIn.join('\r\n') + '\r\n';
+    if (model.colloc) {
+      const O = ['     name    ntran(m)  etran(m)  ndef(m) edef(m)   ninterp(m)   einterp(m)'];
+      targets.forEach(({ r, t }) => {
+        const x = model.compat ? r3(t.n) : t.n, y = model.compat ? r3(t.e) : t.e;
+        const c = collocAt(model, x, y);
+        O.push(fA(r.name, 8) + fF(x, 13, 3) + fF(y, 13, 3) + fF(c.dn, 7, 3) + fF(c.de, 7, 3) + fF(x + c.dn, 13, 3) + fF(y + c.de, 13, 3));
+      });
+      files['interp.out'] = O.join('\r\n') + '\r\n';
+    }
+    Object.keys(chk).forEach(k => { files['chkdist.' + k] = chk[k].length ? chk[k].join('\r\n') + '\r\n' : ''; });
+    return files;
+  }
+
+  return { fF, fE, fI, fA, r3, parseInp, writeInp, parseCOA, writeCOA, splitTable, guessColumns,
+    fit, affine, forward, inverse, collocAt, swapRows, geomChecker, distChecks, azChecks, legacyFiles };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+
+/* ==========================================================================
+ * 坐標轉換工具 — 介面
+ * ======================================================================== */
+const SELF_HTML = '<!doctype html>\n' + document.documentElement.outerHTML; // 必須最先執行（供自我更新/重新打包）
+(function () {
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const VER = JSON.parse($('#ver-data').textContent);
+const BUILTIN = JSON.parse($('#lib-data').textContent);
+const LS_KEY = 'ct.user.v1';
+const E = Engine;
+
+/* ---------------- 儲存 ---------------- */
+function loadUser() {
+  let u = null;
+  try { u = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { /* 無法存取 */ }
+  u = u || {};
+  u.sets = u.sets || {}; u.hidden = u.hidden || []; u.settings = Object.assign({ compat: true, dec: 3, far: 300, theme: '', updUrl: '', updAuto: true }, u.settings || {});
+  u.ui = u.ui || {};
+  return u;
+}
+let USER = loadUser();
+function saveUser() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(USER)); return true; }
+  catch (e) { toast('無法寫入瀏覽器儲存空間，請改用「匯出自訂資料備份」保存：' + e.message); return false; }
+}
+const S = () => USER.settings;
+const updUrl = () => ((S().updUrl || '').trim() || VER.updateUrl || '');  // 未自訂時使用內建更新來源
+
+/* ---------------- 工具 ---------------- */
+function toast(msg, ms = 3500) {
+  const d = document.createElement('div'); d.className = 'm'; d.textContent = msg;
+  $('#toast').appendChild(d); setTimeout(() => d.remove(), ms);
+}
+function fnv(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16).padStart(8, '0'); }
+const nowStr = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const rocDate = () => { const d = new Date(); return `${d.getFullYear() - 1911}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`; };
+const fx = (x, d) => (x == null || !isFinite(x)) ? '' : Number(x).toFixed(d);
+const mm = x => (x == null || !isFinite(x)) ? '' : (x * 1000).toFixed(1);
+const cmpVer = (a, b) => { const A = String(a).split('.').map(Number), B = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((A[i] || 0) !== (B[i] || 0)) return (A[i] || 0) - (B[i] || 0); } return 0; };
+function download(name, data, mime = 'text/plain;charset=utf-8') {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+async function readFileText(file) {
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^﻿/, ''); }
+  catch (e) { return new TextDecoder('big5').decode(buf); }
+}
+function dlg(title, bodyHtml, buttons = [{ label: '關閉' }]) {
+  return new Promise(res => {
+    const d = $('#dlg');
+    $('#dlgTitle').textContent = title; $('#dlgBody').innerHTML = bodyHtml; $('#dlgFoot').innerHTML = '';
+    buttons.forEach((b, i) => {
+      const el = document.createElement('button'); el.className = 'btn' + (b.pri ? ' pri' : '') + (b.danger ? ' danger' : ''); el.textContent = b.label;
+      el.onclick = () => { const v = b.value === undefined ? i : b.value; if (b.onClick && b.onClick() === false) return; res(v); d.close(); };
+      $('#dlgFoot').appendChild(el);
+    });
+    d.onclose = () => res(null);
+    d.showModal();
+    const inp = d.querySelector('#dlgBody input[type=text]');
+    if (inp) { inp.focus(); inp.select(); inp.onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); const p = d.querySelector('#dlgFoot .btn.pri'); if (p) p.click(); } }; }
+  });
+}
+async function ask(title, label, def = '') {
+  const v = await dlg(title, `<div class="field"><label>${esc(label)}</label><input type="text" id="askInput" value="${esc(def)}" style="width:100%"></div>`,
+    [{ label: '取消', value: null }, { label: '確定', pri: true, value: 'ok' }]);
+  return v === 'ok' ? ($('#askInput').value || '').trim() : null;
+}
+const confirmDlg = (title, html, okLabel = '確定', danger = false) => dlg(title, html, [{ label: '取消', value: false }, { label: okLabel, pri: !danger, danger, value: true }]);
+
+/* ZIP（store, UTF-8 檔名） */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const d = new Date(), dt = ((d.getFullYear() - 1980) << 9 | (d.getMonth() + 1) << 5 | d.getDate()), tm = (d.getHours() << 11 | d.getMinutes() << 5 | (d.getSeconds() >> 1));
+  Object.entries(files).forEach(([name, content]) => {
+    const nb = enc.encode(name), data = typeof content === 'string' ? enc.encode(content) : content, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, tm, true); h.setUint16(12, dt, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+    h.setUint16(26, nb.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), nb, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, tm, true); c.setUint16(14, dt, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, nb.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nb);
+    off += 30 + nb.length + data.length;
+  });
+  const csize = central.reduce((s, p) => s + p.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, Object.keys(files).length, true); e.setUint16(10, Object.keys(files).length, true);
+  e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+
+/* IndexedDB（存放本檔的檔案控制代碼，供覆寫自我更新） */
+function idb(mode, fn) {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('coord-transfer', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onerror = () => rej(r.error);
+    r.onsuccess = () => { const tx = r.result.transaction('kv', mode); const q = fn(tx.objectStore('kv')); tx.oncomplete = () => res(q && q.result); tx.onerror = () => rej(tx.error); };
+  });
+}
+const idbGet = k => idb('readonly', s => s.get(k)).catch(() => null);
+const idbSet = (k, v) => idb('readwrite', s => s.put(v, k)).catch(() => null);
+const selfName = () => decodeURIComponent((location.pathname.split('/').pop() || '坐標轉換工具.html'));
+
+async function saveHtml(html, { overwrite = true, name } = {}) {
+  name = name || selfName();
+  if (overwrite && window.showOpenFilePicker && location.protocol === 'file:') {
+    try {
+      let h = await idbGet('selfHandle');
+      if (h && (await h.queryPermission({ mode: 'readwrite' })) !== 'granted') {
+        if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') h = null;
+      }
+      if (!h) {
+        await dlg('選取本檔以便覆寫', `<p>接下來會開啟檔案選擇視窗，請選取<b>目前正在使用的這個檔案</b>：</p><p class="mono">${esc(decodeURIComponent(location.pathname.replace(/^\//, '')))}</p><p class="muted small">之後更新就不必再選。</p>`, [{ label: '繼續', pri: true }]);
+        [h] = await window.showOpenFilePicker({ types: [{ description: 'HTML', accept: { 'text/html': ['.html', '.htm'] } }] });
+        if (h.name !== selfName() && !(await confirmDlg('檔名不同', `你選的是「${esc(h.name)}」，目前開啟的是「${esc(selfName())}」。確定要覆寫所選檔案？`))) return false;
+        await h.requestPermission({ mode: 'readwrite' });
+        await idbSet('selfHandle', h);
+      }
+      const w = await h.createWritable(); await w.write(html); await w.close();
+      return 'written';
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false;
+      toast('無法直接覆寫（' + (e.message || e) + '），改為下載新檔。');
+    }
+  }
+  download(name, html, 'text/html;charset=utf-8');
+  return 'downloaded';
+}
+
+/* ---------------- 參數庫 ---------------- */
+const P = a => Array.isArray(a) ? { name: a[0], ip: a[1], n1: a[2], e1: a[3], n2: a[4], e2: a[5], on: true } : Object.assign({ on: true }, a);
+const ptsHash = pts => fnv(JSON.stringify(pts.map(p => [p.name, p.ip, p.n1, p.e1, p.n2, p.e2, p.on !== false])));
+function builtinSet(id) {
+  const b = BUILTIN.sets.find(s => s.id === id); if (!b) return null;
+  return { id: b.id, name: b.name, sections: b.sections.slice(), note: b.note || '', npar: b.npar, colloc: b.colloc !== false, file: b.file,
+    points: b.points.map(P), samples: (b.samples || []).map(s => ({ name: s[0], n: s[2], e: s[3] })),
+    history: (b.history || []).map(h => ({ label: h.label, file: h.file, points: h.points.map(P), builtin: true })), revisions: [], origin: 'builtin' };
+}
+function allSets() {
+  const out = [];
+  BUILTIN.sets.forEach(b => {
+    if (USER.hidden.includes(b.id)) return;
+    const base = builtinSet(b.id);
+    const u = USER.sets[b.id];
+    if (u) {
+      const s = Object.assign({}, base, u, { points: u.points.map(P), history: base.history, samples: base.samples, origin: 'modified' });
+      s.builtinChanged = u.baseHash && u.baseHash !== ptsHash(base.points);
+      out.push(s);
+    } else out.push(base);
+  });
+  Object.values(USER.sets).forEach(u => {
+    if (BUILTIN.sets.some(b => b.id === u.id)) return;
+    out.push(Object.assign({ history: [], samples: [], revisions: [] }, u, { points: u.points.map(P), origin: 'user' }));
+  });
+  return out;
+}
+const getSet = id => allSets().find(s => s.id === id) || null;
+const ctrlRows = set => set.points.filter(p => p.on !== false).map(p => ({ name: p.name, ip: p.ip < 7 ? p.ip : 1, n1: +p.n1, e1: +p.e1, n2: +p.n2, e2: +p.e2 }));
+function findSetBySection(code) {
+  code = String(code).trim(); if (!code) return null;
+  const sets = allSets();
+  return sets.find(s => s.id === code) || sets.find(s => (s.sections || []).includes(code)) || sets.find(s => s.name.includes(code)) || null;
+}
+
+/* ---------------- 轉換流程 ---------------- */
+const ui = Object.assign({ set: '', dir: 'fwd', npar: 6, colloc: true, method: 'swap', inTab: 'single' }, USER.ui);
+function saveUi() { USER.ui = ui; saveUser(); }
+
+function ctx() {
+  const set = getSet(ui.set);
+  return { set, dir: ui.dir, npar: ui.npar, colloc: ui.colloc, method: ui.method, compat: S().compat !== false };
+}
+const sysIn = c => c.dir === 'fwd' ? 'TWD67' : 'TWD97', sysOut = c => c.dir === 'fwd' ? 'TWD97' : 'TWD67';
+
+function buildRun(c, rowsOverride) {
+  let rows = rowsOverride || ctrlRows(c.set);
+  if (!rows.filter(r => r.ip < 7).length) throw new Error('此參數組沒有可用的控制點。');
+  const iter = c.dir === 'rev' && c.method === 'iter';
+  const fitRows = c.dir === 'rev' && !iter ? E.swapRows(rows) : rows;
+  const model = E.fit(fitRows, { npar: c.npar, colloc: c.colloc, compat: c.compat });
+  const ctrl = rows.filter(r => r.ip < 7);
+  const srcPts = ctrl.map(r => c.dir === 'fwd' ? { n: r.n1, e: r.e1, name: r.name } : { n: r.n2, e: r.e2, name: r.name });
+  const check = E.geomChecker(srcPts);
+  const conv = (n, e) => iter ? E.inverse(model, n, e, c.colloc) : E.forward(model, n, e, c.colloc, c.compat);
+  return { model, rows, fitRows, iter, check, conv };
+}
+function transformTargets(c, targets, rowsOverride) {
+  const run = buildRun(c, rowsOverride);
+  const far = +S().far || 0;
+  const items = targets.map(t => {
+    const r = run.conv(t.n, t.e);
+    const g = run.check(t.n, t.e);
+    return Object.assign({}, t, { inN: t.n, inE: t.e, n: r.n, e: r.e, an: r.an, ae: r.ae, dn: r.dn, de: r.de,
+      nearest: g.nearest, nearestName: g.nearestName, inside: g.inside, extrap: !g.inside || (far > 0 && g.nearest > far) });
+  });
+  let legacy = null;
+  if (!run.iter) {
+    const tRows = targets.map(t => ({ name: String(t.name).slice(0, 8), ip: 8, n1: t.n, e1: t.e, n2: 0, e2: 0 }));
+    legacy = E.legacyFiles(run.fitRows.concat(tRows), run.model, (c.set ? c.set.id : 'trans').replace(/[^\w.-]+/g, '_'));
+  }
+  return { ctx: c, run, model: run.model, items, legacy, time: nowStr() };
+}
+
+/* ---------------- 轉換頁 ---------------- */
+function renderSetSelect() {
+  const sel = $('#selSet'), sets = allSets();
+  const groups = { builtin: [], modified: [], user: [] };
+  sets.forEach(s => groups[s.origin].push(s));
+  const opt = s => `<option value="${esc(s.id)}">${esc(s.name)}${s.sections && s.sections.length > 1 ? '（' + esc(s.sections[0]) + '–' + esc(s.sections[s.sections.length - 1]) + '）' : ''} · ${s.points.filter(p => p.on !== false).length} 點</option>`;
+  sel.innerHTML = (groups.builtin.length ? `<optgroup label="內建參數">${groups.builtin.map(opt).join('')}</optgroup>` : '') +
+    (groups.modified.length ? `<optgroup label="已修改的內建參數">${groups.modified.map(opt).join('')}</optgroup>` : '') +
+    (groups.user.length ? `<optgroup label="自訂參數">${groups.user.map(opt).join('')}</optgroup>` : '');
+  if (!sets.some(s => s.id === ui.set)) ui.set = sets[0] ? sets[0].id : '';
+  sel.value = ui.set;
+}
+function setSeg(id, v) { $$(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === String(v))); }
+function refreshTransHeader() {
+  const c = ctx(); const set = c.set;
+  setSeg('segDir', ui.dir); setSeg('segPar', ui.npar); $('#chkColloc').checked = ui.colloc;
+  $('#revMethodBox').style.display = ui.dir === 'rev' ? '' : 'none'; $('#selRevMethod').value = ui.method;
+  ['spN', 'spE'].forEach(k => { $('#' + k + 'Label').textContent = (k === 'spN' ? 'N' : 'E') + '（' + sysIn(c) + '）'; });
+  const w = $('#setWarn'); w.innerHTML = '';
+  if (!set) { $('#setSummary').textContent = '尚無參數組'; return; }
+  try {
+    const run = buildRun(c);
+    const m = run.model;
+    $('#setSummary').innerHTML = `${esc(set.sections && set.sections.length ? '適用：' + set.sections.join('、') + ' 段 · ' : '')}控制點 ${m.nctrl} · 自由度 ${m.df} · σ₀ = ${m.df > 1 ? fx(m.sd0 * 1000, 1) + ' mm' : '—'}`;
+    const msgs = m.warnings.slice();
+    if (set.note) msgs.unshift(set.note);
+    if (set.builtinChanged) msgs.push('內建參數已更新，與你修改過的版本不同，可到「參數管理」比較。');
+    if (msgs.length) w.innerHTML = `<div class="note ${m.warnings.length ? 'warn' : ''}">${msgs.map(esc).join('<br>')}</div>`;
+  } catch (e) {
+    $('#setSummary').textContent = '';
+    w.innerHTML = `<div class="note bad">${esc(e.message)}</div>`;
+  }
+}
+function bindTransPage() {
+  $('#selSet').onchange = e => { ui.set = e.target.value; const s = getSet(ui.set); if (s) { ui.npar = s.npar; ui.colloc = s.colloc !== false; } saveUi(); refreshTransHeader(); };
+  $$('#segDir button').forEach(b => b.onclick = () => { ui.dir = b.dataset.v; saveUi(); refreshTransHeader(); });
+  $$('#segPar button').forEach(b => b.onclick = () => { ui.npar = +b.dataset.v; saveUi(); refreshTransHeader(); });
+  $('#chkColloc').onchange = e => { ui.colloc = e.target.checked; saveUi(); refreshTransHeader(); };
+  $('#selRevMethod').onchange = e => { ui.method = e.target.value; saveUi(); };
+  $$('#inTabs button').forEach(b => b.onclick = () => { ui.inTab = b.dataset.v; saveUi(); showInTab(); });
+  // 單點
+  const doSingle = () => {
+    const n = parseFloat($('#spN').value), e = parseFloat($('#spE').value);
+    if (!isFinite(n) || !isFinite(e)) { toast('請輸入 N、E 坐標'); return; }
+    runAndShow('single', [{ name: $('#spName').value.trim() || 'P1', n, e }]);
+  };
+  $('#btnSingle').onclick = doSingle;
+  ['spName', 'spN', 'spE'].forEach(id => $('#' + id).addEventListener('keydown', ev => { if (ev.key === 'Enter') doSingle(); }));
+  $('#spN').addEventListener('paste', ev => {
+    const t = (ev.clipboardData || window.clipboardData).getData('text').trim();
+    const parts = t.split(/[\s,;\t]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      ev.preventDefault();
+      const nums = parts.map(Number);
+      const ni = nums.findIndex(v => v > 2.3e6 && v < 2.9e6), ei = nums.findIndex(v => v > 1e5 && v < 4e5);
+      if (ni >= 0) $('#spN').value = parts[ni]; if (ei >= 0) $('#spE').value = parts[ei];
+      const nm = parts.find(p => !isFinite(Number(p)));
+      if (nm) $('#spName').value = nm;
+    }
+  });
+  // 多點
+  setupDrop('#mtDrop', '#mtFile', async f => { $('#mtText').value = await readFileText(f); MT.fileName = f.name; parseMulti(); });
+  let tmr; $('#mtText').addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(() => { MT.fileName = ''; parseMulti(); }, 250); });
+  $('#btnMulti').onclick = runMulti;
+  // COA
+  setupDrop('#coaDrop', '#coaFile', async f => { COA.file = f.name; COA.data = E.parseCOA(await readFileText(f)); renderCoaInfo(); });
+  $('#btnCoa').onclick = runCoa;
+}
+function showInTab() {
+  setSeg('inTabs', ui.inTab);
+  $$('#inTabs button').forEach(b => b.classList.toggle('on', b.dataset.v === ui.inTab));
+  $$('[data-in]').forEach(d => d.style.display = d.dataset.in === ui.inTab ? '' : 'none');
+}
+function setupDrop(dropSel, fileSel, onFile) {
+  const d = $(dropSel), f = $(fileSel);
+  d.onclick = () => f.click();
+  f.onchange = () => { if (f.files[0]) onFile(f.files[0]); f.value = ''; };
+  d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('over'); });
+  d.addEventListener('dragleave', () => d.classList.remove('over'));
+  d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('over'); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
+}
+
+/* 多點解析 */
+const MT = { table: null, map: null, inp: null, useInpCtrl: false, fileName: '' };
+function looksInp(text) {
+  const ls = text.split(/\r?\n/).filter(l => l.trim()); if (!ls.length) return false;
+  const ok = ls.filter(l => { const t = l.trim().split(/\s+/); return (t.length === 4 || t.length === 6) && /^\d$/.test(t[1]) && isFinite(+t[2]) && isFinite(+t[3]); }).length;
+  return ok / ls.length >= 0.8;
+}
+function parseMulti() {
+  const text = $('#mtText').value;
+  const box = $('#mtMap');
+  MT.inp = null; MT.table = null;
+  if (!text.trim()) { box.innerHTML = ''; $('#mtInfo').textContent = ''; return; }
+  if (looksInp(text)) {
+    const rows = E.parseInp(text); MT.inp = rows;
+    const nc = rows.filter(r => r.ip < 7).length, nt = rows.filter(r => r.ip >= 7 && r.ip < 9).length;
+    box.innerHTML = `<div class="note">偵測為 <b>.inp 格式</b>：控制點 ${nc} 點、待求點 ${nt} 點。</div>` +
+      (nc ? `<label style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="mtUseCtrl" ${MT.useInpCtrl ? 'checked' : ''}> 使用檔案內控制點計算（不使用上方參數組）</label>` : '');
+    const cb = $('#mtUseCtrl'); if (cb) cb.onchange = e => { MT.useInpCtrl = e.target.checked; };
+    $('#mtInfo').textContent = `待求點 ${nt} 點`;
+    return;
+  }
+  const tb = E.splitTable(text); MT.table = tb;
+  const g = E.guessColumns(tb.rows);
+  if (!MT.map || MT.map.nCol !== g.nCol) MT.map = g;
+  const m = MT.map;
+  const sample = tb.rows[m.hasHeader ? 1 : 0] || [];
+  const opts = (sel, allowNone) => (allowNone ? `<option value="-1"${sel < 0 ? ' selected' : ''}>（自動編號）</option>` : '') +
+    Array.from({ length: m.nCol }, (_, i) => `<option value="${i}"${i === sel ? ' selected' : ''}>第 ${i + 1} 欄${sample[i] != null ? '：' + esc(String(sample[i]).slice(0, 14)) : ''}</option>`).join('');
+  box.innerHTML = `<div class="row">
+    <div class="field"><label>點名欄</label><select id="mapName">${opts(m.name, true)}</select></div>
+    <div class="field"><label>N 欄</label><select id="mapN">${opts(m.n)}</select></div>
+    <div class="field"><label>E 欄</label><select id="mapE">${opts(m.e)}</select></div>
+    <label style="display:flex;gap:6px;align-items:center;height:36px"><input type="checkbox" id="mapHdr" ${m.hasHeader ? 'checked' : ''}> 首列為標題</label></div>`;
+  ['mapName', 'mapN', 'mapE'].forEach(id => $('#' + id).onchange = e => { m[{ mapName: 'name', mapN: 'n', mapE: 'e' }[id]] = +e.target.value; updMtInfo(); });
+  $('#mapHdr').onchange = e => { m.hasHeader = e.target.checked; updMtInfo(); };
+  updMtInfo();
+}
+function multiTargets() {
+  if (MT.inp) return MT.inp.filter(r => r.ip >= 7 && r.ip < 9).map((r, i) => ({ name: r.name, n: r.n1, e: r.e1, idx: i }));
+  if (!MT.table) return [];
+  const m = MT.map, rows = MT.table.rows.slice(m.hasHeader ? 1 : 0);
+  const out = [];
+  rows.forEach((r, i) => {
+    const n = parseFloat(r[m.n]), e = parseFloat(r[m.e]);
+    if (!isFinite(n) || !isFinite(e)) return;
+    out.push({ name: m.name >= 0 && r[m.name] ? r[m.name] : 'P' + (i + 1), n, e, raw: r, idx: i });
+  });
+  return out;
+}
+function updMtInfo() {
+  const t = multiTargets(), m = MT.map;
+  const total = MT.table ? MT.table.rows.length - (m && m.hasHeader ? 1 : 0) : 0;
+  $('#mtInfo').textContent = `可轉換 ${t.length} 點` + (total > t.length ? `（略過 ${total - t.length} 列無法辨識）` : '');
+}
+function runMulti() {
+  parseMulti();
+  const t = multiTargets();
+  if (!t.length) { toast('沒有可轉換的點，請確認欄位設定'); return; }
+  let override = null;
+  if (MT.inp && MT.useInpCtrl) override = MT.inp.filter(r => r.ip < 7);
+  runAndShow('multi', t, override);
+}
+
+/* COA */
+const COA = { data: null, file: '' };
+function renderCoaInfo() {
+  const d = COA.data, box = $('#coaInfo');
+  if (!d || !d.rows.length) { box.innerHTML = '<div class="note bad">無法辨識的 COA 檔。</div>'; $('#btnCoa').disabled = true; return; }
+  let nmin = Infinity, nmax = -Infinity, emin = Infinity, emax = -Infinity;
+  d.rows.forEach(r => { nmin = Math.min(nmin, r.n); nmax = Math.max(nmax, r.n); emin = Math.min(emin, r.e); emax = Math.max(emax, r.e); });
+  const code = (d.header.trim().split(/\s+/)[0] || '');
+  const secNo = code.replace(/^[A-Za-z]+0*/, '');
+  const sug = findSetBySection(secNo);
+  box.innerHTML = `<div class="kv"><div>檔案</div><div>${esc(COA.file)}</div><div>段代碼</div><div class="mono">${esc(code || '（無標頭）')}</div>
+    <div>界址點數</div><div>${d.rows.length.toLocaleString()}</div><div>N 範圍</div><div class="mono">${fx(nmin, 3)} ～ ${fx(nmax, 3)}</div>
+    <div>E 範圍</div><div class="mono">${fx(emin, 3)} ～ ${fx(emax, 3)}</div></div>` +
+    (d.bad.length ? `<div class="note warn" style="margin-top:8px">有 ${d.bad.length} 列無法解析（第 ${d.bad.slice(0, 8).join('、')}${d.bad.length > 8 ? '…' : ''} 列），將保留不轉換。</div>` : '') +
+    (sug && sug.id !== ui.set ? `<div class="note" style="margin-top:8px">段號 ${esc(secNo)} 對應參數組「${esc(sug.name)}」。<button class="btn sm" id="coaUseSug">改用此參數組</button></div>` : '');
+  const b = $('#coaUseSug'); if (b) b.onclick = () => { ui.set = sug.id; ui.npar = sug.npar; ui.colloc = sug.colloc !== false; saveUi(); renderSetSelect(); refreshTransHeader(); renderCoaInfo(); };
+  $('#btnCoa').disabled = false;
+}
+function runCoa() {
+  if (!COA.data) return;
+  const t = COA.data.rows.map((r, i) => ({ name: r.name, n: r.n, e: r.e, idx: i }));
+  runAndShow('coa', t);
+}
+
+/* 執行與成果呈現 */
+let LAST = null;
+function runAndShow(kind, targets, override) {
+  const c = ctx();
+  if (!c.set && !override) { toast('請先選擇參數組'); return; }
+  try {
+    const res = transformTargets(c, targets, override);
+    res.kind = kind; res.override = !!override;
+    if (kind === 'multi') { res.table = MT.table; res.map = MT.map && Object.assign({}, MT.map); res.fileName = MT.fileName; }
+    if (kind === 'coa') { res.coa = COA.data; res.fileName = COA.file; }
+    LAST = res;
+    renderResult(res);
+  } catch (e) { console.error(e); toast(e.message || String(e), 6000); }
+}
+function renderResult(res) {
+  const c = res.ctx, m = res.model, d = +S().dec || 3, card = $('#resCard');
+  card.style.display = '';
+  const ex = res.items.filter(i => i.extrap).length;
+  $('#resChips').innerHTML = [
+    `<span class="chip acc">${sysIn(c)} → ${sysOut(c)}</span>`,
+    `<span class="chip">${res.items.length.toLocaleString()} 點</span>`,
+    `<span class="chip">${m.npar} 參數${c.colloc && m.colloc ? ' + 配置' : ''}</span>`,
+    `<span class="chip">σ₀ ${m.df > 1 ? fx(m.sd0 * 1000, 1) + ' mm' : '—'}</span>`,
+    ex ? `<span class="chip warn">外插 ${ex} 點</span>` : `<span class="chip ok">皆在控制範圍內</span>`,
+  ].join(' ');
+  const acts = [];
+  if (res.kind === 'coa') acts.push(['COA', '下載 COA']);
+  if (res.kind === 'multi' && res.table) acts.push(['csvOrig', 'CSV（原格式）']);
+  acts.push(['csv', '成果明細 CSV'], ['txt', 'TXT'], ['report', '轉換報告'], ['print', '列印報告']);
+  if (res.legacy) acts.push(['zip', '原程式格式 ZIP']);
+  $('#resActions').innerHTML = acts.map(([k, l], i) => `<button class="btn sm${i === 0 ? ' pri' : ''}" data-act="${k}">${l}</button>`).join('');
+  $$('#resActions button').forEach(b => b.onclick = () => resultAction(b.dataset.act));
+
+  let html = '';
+  if (res.kind === 'single') {
+    const it = res.items[0];
+    html += `<div class="result-big"><div><div class="lb">N（${sysOut(c)}）</div><div class="v">${fx(it.n, d)}</div></div>
+      <div><div class="lb">E（${sysOut(c)}）</div><div class="v">${fx(it.e, d)}</div></div>
+      <button class="btn sm" id="btnCopy1">複製</button></div>
+      <div class="kv" style="margin-top:14px">
+      <div>輸入（${sysIn(c)}）</div><div class="mono">${fx(it.inN, 3)}　${fx(it.inE, 3)}</div>
+      <div>${m.npar} 參數轉換</div><div class="mono">${fx(it.an, 4)}　${fx(it.ae, 4)}</div>
+      <div>配置改正</div><div class="mono">ΔN ${mm(it.dn)} mm　ΔE ${mm(it.de)} mm</div>
+      <div>最近控制點</div><div>${esc(it.nearestName)}（${fx(it.nearest, 1)} m）</div>
+      <div>位置</div><div>${it.extrap ? '<span class="chip warn">控制點範圍外（外插），精度可能較差</span>' : '<span class="chip ok">控制點範圍內</span>'}</div></div>`;
+  } else {
+    const lim = res.showAll ? res.items.length : Math.min(res.items.length, 300);
+    html += `<div class="tbl-wrap"><table class="t"><thead><tr><th>#</th><th>點名</th><th class="num">N（${sysIn(c)}）</th><th class="num">E（${sysIn(c)}）</th><th class="num">N（${sysOut(c)}）</th><th class="num">E（${sysOut(c)}）</th><th class="num">配置ΔN mm</th><th class="num">配置ΔE mm</th><th>最近控制點</th><th></th></tr></thead><tbody>` +
+      res.items.slice(0, lim).map((it, i) => `<tr${it.extrap ? ' class="hl"' : ''}><td class="muted">${i + 1}</td><td>${esc(it.name)}</td><td class="num">${fx(it.inN, 3)}</td><td class="num">${fx(it.inE, 3)}</td><td class="num"><b>${fx(it.n, d)}</b></td><td class="num"><b>${fx(it.e, d)}</b></td><td class="num">${mm(it.dn)}</td><td class="num">${mm(it.de)}</td><td>${esc(it.nearestName)} <span class="muted">${fx(it.nearest, 0)} m</span></td><td>${it.extrap ? '<span class="chip warn">外插</span>' : ''}</td></tr>`).join('') +
+      `</tbody></table></div>` + (lim < res.items.length ? `<div style="margin-top:8px"><button class="btn sm" id="btnShowAll">顯示全部 ${res.items.length.toLocaleString()} 點</button> <span class="muted small">（下載檔案已包含全部成果）</span></div>` : '');
+  }
+  if (m.warnings.length) html += `<div class="note warn" style="margin-top:12px">${m.warnings.map(esc).join('<br>')}</div>`;
+  if (res.override) html += `<div class="note" style="margin-top:12px">本次使用 .inp 檔內的控制點計算。</div>`;
+  if (res.run.iter) html += `<div class="note" style="margin-top:12px">反算方式：迭代反解（與正算互逆）。原程式格式檔案僅適用「反向擬合」。</div>`;
+  $('#resBody').innerHTML = html;
+  const cp = $('#btnCopy1'); if (cp) cp.onclick = () => { navigator.clipboard.writeText(`${fx(res.items[0].n, d)}\t${fx(res.items[0].e, d)}`).then(() => toast('已複製')); };
+  const sa = $('#btnShowAll'); if (sa) sa.onclick = () => { res.showAll = true; renderResult(res); };
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function baseName(res) {
+  const s = res.ctx.set ? res.ctx.set.id : 'trans';
+  const src = res.fileName ? res.fileName.replace(/\.[^.]+$/, '') : s;
+  return `${src}_${sysOut(res.ctx)}_${rocDate()}`;
+}
+function resultAction(k) {
+  const res = LAST; if (!res) return;
+  const d = +S().dec || 3, bn = baseName(res);
+  if (k === 'csv') {
+    const head = ['點名', `輸入N(${sysIn(res.ctx)})`, `輸入E(${sysIn(res.ctx)})`, `成果N(${sysOut(res.ctx)})`, `成果E(${sysOut(res.ctx)})`, '轉換N(未配置)', '轉換E(未配置)', '配置dN(m)', '配置dE(m)', '最近控制點', '距離(m)', '範圍'];
+    const lines = [head.join(',')].concat(res.items.map(it => [it.name, fx(it.inN, 3), fx(it.inE, 3), fx(it.n, d), fx(it.e, d), fx(it.an, 4), fx(it.ae, 4), fx(it.dn, 4), fx(it.de, 4), it.nearestName, fx(it.nearest, 1), it.extrap ? '外插' : '內插'].map(csvCell).join(',')));
+    download(bn + '_明細.csv', '﻿' + lines.join('\r\n') + '\r\n', 'text/csv;charset=utf-8');
+  } else if (k === 'csvOrig') {
+    const delim = res.table.delim === 'ws' ? ' ' : res.table.delim;
+    const rows = res.table.rows.map(r => r.slice());
+    res.items.forEach(it => { const r = rows[it.idx + (res.map.hasHeader ? 1 : 0)]; r[res.map.n] = fx(it.n, d); r[res.map.e] = fx(it.e, d); });
+    download(bn + '.csv', rows.map(r => r.join(delim)).join('\r\n') + '\r\n', 'text/csv;charset=utf-8');
+  } else if (k === 'txt') {
+    download(bn + '.txt', res.items.map(it => E.fA(it.name, 10) + E.fF(it.n, 15, d) + E.fF(it.e, 15, d)).join('\r\n') + '\r\n');
+  } else if (k === 'COA') {
+    const dec = $('#selCoaDec').value; const coords = res.items.map(it => ({ n: it.n, e: it.e }));
+    download((res.fileName || 'OUT.COA').replace(/(\.[^.]+)?$/, m => '_' + sysOut(res.ctx) + (m || '.COA')), E.writeCOA(res.coa, coords, dec === '' ? null : +dec));
+  } else if (k === 'report') {
+    download(bn + '_轉換報告.html', reportHtml(res), 'text/html;charset=utf-8');
+  } else if (k === 'print') {
+    const w = window.open('', '_blank'); if (!w) { toast('瀏覽器擋下了彈出視窗，請改用「轉換報告」下載'); return; }
+    w.document.write(reportHtml(res, true)); w.document.close();
+  } else if (k === 'zip') {
+    const files = Object.assign({}, res.legacy);
+    Object.keys(files).forEach(f => { if (files[f] === '') delete files[f]; });
+    files[bn + '_成果.txt'] = res.items.map(it => E.fA(it.name, 10) + E.fF(it.n, 15, d) + E.fF(it.e, 15, d)).join('\r\n') + '\r\n';
+    files[bn + '_轉換報告.html'] = reportHtml(res);
+    download(bn + '.zip', makeZip(files));
+  }
+}
+const csvCell = v => { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+
+/* 轉換報告 */
+function modelSection(m, rows, inLab, outLab) {
+  const ctrl = rows.filter(r => r.ip < 7);
+  const resid = new Map(m.residuals.map(r => [r.p, r]));
+  const parNames = m.npar === 4 ? ['a', 'b', 'c', 'd'] : ['a₁', 'a₂', 'a₃', 'b₁', 'b₂', 'b₃'];
+  let h = `<h2>控制點與殘差</h2><table><thead><tr><th>點名</th><th>N（${inLab}）</th><th>E（${inLab}）</th><th>N（${outLab}）</th><th>E（${outLab}）</th><th>vN mm</th><th>vE mm</th><th>|v| mm</th></tr></thead><tbody>` +
+    ctrl.map(p => { const r = m.residuals.find(x => x.p === p) || resid.get(p); return `<tr><td class="l">${esc(p.name)}</td><td>${fx(p.n1, 3)}</td><td>${fx(p.e1, 3)}</td><td>${fx(p.n2, 3)}</td><td>${fx(p.e2, 3)}</td><td>${r ? mm(r.vn) : ''}</td><td>${r ? mm(r.ve) : ''}</td><td>${r ? mm(Math.hypot(r.vn, r.ve)) : ''}</td></tr>`; }).join('') + `</tbody></table>`;
+  h += `<h2>轉換參數</h2><p class="s">模型：${m.npar === 4 ? 'Helmert 4 參數 N = a·dN + b·dE + c + N₀，E = a·dE − b·dN + d + E₀' : '仿射 6 參數 N = a₁·dN + a₂·dE + a₃ + N₀，E = b₁·dN + b₂·dE + b₃ + E₀'}；dN = N − N₀，dE = E − E₀，N₀ = ${fx(m.nc0, 3)}，E₀ = ${fx(m.ec0, 3)}</p>
+    <table><thead><tr><th>參數</th><th>值</th><th>中誤差 σ₀√Qᵢᵢ</th></tr></thead><tbody>${m.X.map((x, i) => `<tr><td class="l">${parNames[i]}（A(${i + 1})）</td><td>${x.toFixed(11)}</td><td>${m.df > 1 ? m.sig[i].toExponential(4) : '—'}</td></tr>`).join('')}</tbody></table>
+    <p class="s">控制點 ${m.nctrl} 點，[vv] = ${m.vv.toFixed(6)} m²，自由度 ${m.df}，單位權中誤差 σ₀ = ${m.df > 1 ? fx(m.sd0, 4) + ' m' : '—（自由度不足）'}</p>`;
+  if (m.colloc) {
+    const C = m.colloc;
+    h += `<h2>最小二乘配置</h2><p class="s">線性協方差函數 C(d) = c·(1 − d/a)（d ≤ a），以控制點殘差內插改正量。</p>
+      <table><thead><tr><th>分量</th><th>平均殘差 m</th><th>c（m²）</th><th>相關距離 a（km）</th></tr></thead><tbody>
+      <tr><td class="l">N</td><td>${C.n.ave.toFixed(4)}</td><td>${C.n.c.toExponential(4)}</td><td>${C.n.a.toFixed(3)}</td></tr>
+      <tr><td class="l">E</td><td>${C.e.ave.toFixed(4)}</td><td>${C.e.c.toExponential(4)}</td><td>${C.e.a.toFixed(3)}</td></tr></tbody></table>`;
+  }
+  if (ctrl.length > 1 && ctrl.length <= 60) {
+    const dc = E.distChecks(ctrl), az = E.azChecks(ctrl);
+    h += `<h2>距離與方位檢核（兩坐標組間）</h2><table><thead><tr><th>起點</th><th>終點</th><th>距離（${inLab}）</th><th>距離（${outLab}）</th><th>差 mm</th><th>相對精度</th><th>方位差（″）</th></tr></thead><tbody>` +
+      dc.map((x, i) => `<tr><td class="l">${esc(x.from)}</td><td class="l">${esc(x.to)}</td><td>${fx(x.d1, 3)}</td><td>${fx(x.d2, 3)}</td><td>${mm(x.dd)}</td><td>${x.valid ? '1/' + Math.round(Math.abs(x.d2 / x.dd)).toLocaleString() : '—'}</td><td>${(az[i].dzRad * 206264.806).toFixed(1)}</td></tr>`).join('') + `</tbody></table>`;
+  }
+  return h;
+}
+function reportHtml(res, autoPrint) {
+  const c = res.ctx, m = res.model, d = +S().dec || 3, set = c.set;
+  const inLab = sysIn(c), outLab = sysOut(c);
+  const fitIn = c.dir === 'rev' && !res.run.iter ? 'TWD97' : 'TWD67', fitOut = fitIn === 'TWD67' ? 'TWD97' : 'TWD67';
+  const ex = res.items.filter(i => i.extrap);
+  const method = c.dir === 'fwd' ? '正算' : (res.run.iter ? '反算（迭代反解正算模型）' : '反算（交換坐標組重新擬合，同原程式）');
+  const css = `body{font:13px/1.55 "Microsoft JhengHei","Noto Sans TC",sans-serif;color:#1d2320;margin:28px;max-width:1000px}h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:22px 0 6px;border-bottom:2px solid #1f6f5c;padding-bottom:3px}
+    table{border-collapse:collapse;width:100%;font-size:12px;margin:4px 0}th,td{border:1px solid #c9cec7;padding:3px 7px;text-align:right;font-family:Consolas,monospace;white-space:nowrap}th{background:#eef1ed;font-family:inherit;text-align:center}td.l{text-align:left;font-family:inherit}
+    .s{color:#4c5650;margin:4px 0}.meta td{text-align:left;font-family:inherit;border:0;padding:2px 12px 2px 0}.warn{background:#fdf3e1}.foot{margin-top:24px;color:#7b857f;font-size:11px}@media print{body{margin:10mm}h2{break-after:avoid}tr{break-inside:avoid}}`;
+  let h = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>坐標轉換報告 ${esc(set ? set.name : '')}</title><style>${css}</style></head><body>
+    <h1>坐標轉換報告</h1><table class="meta"><tr><td>參數組</td><td><b>${esc(set ? set.name : '（.inp 檔內控制點）')}</b>${set && set.sections.length ? '（適用 ' + esc(set.sections.join('、')) + ' 段）' : ''}${set && set.origin !== 'builtin' ? '　［已自訂修改］' : ''}</td></tr>
+    <tr><td>轉換方向</td><td>${inLab} → ${outLab}　${method}</td></tr><tr><td>模型</td><td>${m.npar === 4 ? 'Helmert 4 參數' : '仿射 6 參數'}${c.colloc && m.colloc ? ' + 最小二乘配置' : '（未配置）'}${c.compat ? '，與原程式逐位相容' : ''}</td></tr>
+    <tr><td>點數</td><td>${res.items.length} 點${ex.length ? `，其中 <b>${ex.length}</b> 點位於控制點範圍外（外插）` : ''}</td></tr>
+    <tr><td>計算時間</td><td>${esc(res.time)}　坐標轉換工具 v${esc(VER.version)}（演算法：國土測繪中心 TRANSFN1）</td></tr></table>`;
+  if (m.warnings.length) h += `<p class="s warn">${m.warnings.map(esc).join('<br>')}</p>`;
+  h += modelSection(m, res.run.fitRows, fitIn, fitOut);
+  h += `<h2>轉換成果</h2><table><thead><tr><th>#</th><th>點名</th><th>N（${inLab}）</th><th>E（${inLab}）</th><th>N（${outLab}）</th><th>E（${outLab}）</th><th>配置ΔN mm</th><th>配置ΔE mm</th><th>最近控制點</th><th>距離 m</th><th>備註</th></tr></thead><tbody>` +
+    res.items.map((it, i) => `<tr${it.extrap ? ' class="warn"' : ''}><td>${i + 1}</td><td class="l">${esc(it.name)}</td><td>${fx(it.inN, 3)}</td><td>${fx(it.inE, 3)}</td><td><b>${fx(it.n, d)}</b></td><td><b>${fx(it.e, d)}</b></td><td>${mm(it.dn)}</td><td>${mm(it.de)}</td><td class="l">${esc(it.nearestName)}</td><td>${fx(it.nearest, 0)}</td><td class="l">${it.extrap ? '外插' : ''}</td></tr>`).join('') + `</tbody></table>`;
+  h += `<p class="foot">本報告由「坐標轉換工具」產生。轉換演算法逐步移植自國土測繪中心坐標轉換程式 TRANSFN1（成功大學測量系），已與 t.exe 之輸出逐字比對驗證。</p>`;
+  if (autoPrint) h += '<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script>';
+  return h + '</body></html>';
+}
+
+/* ---------------- 參數管理 ---------------- */
+let ED = { id: null, draft: null, dirty: false, isNew: false };
+const clone = o => JSON.parse(JSON.stringify(o));
+function renderSetList() {
+  const q = ($('#setSearch').value || '').trim();
+  const sets = allSets().filter(s => !q || s.id.includes(q) || s.name.includes(q) || (s.sections || []).some(x => x.includes(q)));
+  $('#setList').innerHTML = sets.map(s => `<div class="it${s.id === ED.id ? ' on' : ''}" data-id="${esc(s.id)}"><div class="nm">${esc(s.name)}${s.builtinChanged ? '<span class="dot" title="內建參數已更新"></span>' : ''}</div>
+    <div class="small muted">${s.points.filter(p => p.on !== false).length} 點 · ${s.npar} 參數 · ${s.origin === 'builtin' ? '內建' : s.origin === 'modified' ? '<span style="color:var(--warn)">已修改</span>' : '<span style="color:var(--accent)">自訂</span>'}</div></div>`).join('') ||
+    '<div class="bd muted">找不到符合的參數組</div>';
+  $$('#setList .it').forEach(el => el.onclick = async () => { if (await leaveEditor()) openEditor(el.dataset.id); });
+}
+async function leaveEditor() {
+  if (!ED.dirty) return true;
+  return !!(await confirmDlg('尚未儲存', '目前的修改尚未儲存，確定要放棄？', '放棄修改', true));
+}
+function openEditor(id, draft) {
+  const s = draft || getSet(id);
+  if (!s) { $('#editor').innerHTML = '<div class="card"><div class="bd muted">請從左側選擇參數組</div></div>'; return; }
+  ED = { id: s.id, draft: clone(s), dirty: !!draft, isNew: !!draft && !getSet(s.id) };
+  renderSetList(); renderEditor();
+}
+function markDirty() { ED.dirty = true; const b = $('#edDirty'); if (b) b.style.display = ''; }
+function renderEditor() {
+  const s = ED.draft;
+  const box = $('#editor');
+  box.innerHTML = `
+  <div class="card"><div class="hd"><h2>${esc(s.name)}</h2>
+    <span class="chip ${s.origin === 'builtin' ? '' : s.origin === 'modified' ? 'warn' : 'acc'}">${s.origin === 'builtin' ? '內建' : s.origin === 'modified' ? '已修改的內建參數' : '自訂'}</span>
+    <span class="chip warn" id="edDirty" style="${ED.dirty ? '' : 'display:none'}">未儲存</span><div class="spacer"></div>
+    <button class="btn sm pri" id="edSave">儲存為新版本</button><button class="btn sm" id="edDiscard">放棄修改</button></div>
+  <div class="bd">
+    ${s.builtinChanged ? `<div class="note warn" style="margin-bottom:12px">程式更新後內建參數已變動，與你修改過的版本不同。<button class="btn sm" id="edCmpBuiltin">與新內建版本比較</button></div>` : ''}
+    <div class="row">
+      <div class="field" style="flex:2 1 220px"><label>名稱</label><input type="text" id="edName" value="${esc(s.name)}"></div>
+      <div class="field" style="flex:1 1 140px"><label>代號（ID）</label><input type="text" id="edId" value="${esc(s.id)}" ${ED.isNew ? '' : 'disabled'}></div>
+      <div class="field" style="flex:2 1 220px"><label>適用段號（以逗號分隔）</label><input type="text" id="edSecs" value="${esc((s.sections || []).join(','))}"></div>
+      <div class="field"><label>預設模型</label><div class="seg" id="edPar"><button data-v="6">6 參數</button><button data-v="4">4 參數</button></div></div>
+      <label style="display:flex;gap:6px;align-items:center;height:36px"><input type="checkbox" id="edColloc" ${s.colloc !== false ? 'checked' : ''}> 配置</label>
+    </div>
+    <div class="field" style="margin-top:10px"><label>備註</label><textarea id="edNote" rows="2" style="font-family:inherit">${esc(s.note || '')}</textarea></div>
+  </div></div>
+  <div class="card"><div class="hd"><h2>控制點</h2><span id="edStats" class="small"></span><div class="spacer"></div>
+    <button class="btn sm" id="edExpInp">匯出 .inp</button><button class="btn sm" id="edExpJson">匯出參數檔 JSON</button><button class="btn sm" id="edExpRpt">參數報告</button></div>
+    <div class="bd"><div class="tbl-wrap"><table class="t" id="edTbl"></table></div>
+    <details style="margin-top:14px" ${s.points.length ? '' : 'open'}><summary>新增控制點</summary>
+      <p class="small muted">每行一點：<span class="mono">點名 N67 E67 N97 E97</span>（逗號、Tab、空白分隔皆可），或直接貼上 .inp 內容（IP=1 的列）。同名點會更新坐標。</p>
+      <textarea id="edAdd" rows="5" placeholder="HB149  2704461.069  215163.152  2704666.323  214333.842"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn pri sm" id="edAddBtn">加入</button><span class="small muted" id="edAddInfo"></span></div>
+    </details></div></div>
+  <div class="card"><div class="hd"><h2>版本紀錄</h2><div class="spacer"></div>
+    ${s.origin === 'modified' ? '<button class="btn sm danger" id="edRevert">還原為內建版本</button>' : ''}
+    ${s.origin === 'user' ? '<button class="btn sm danger" id="edDelete">刪除此參數組</button>' : ''}
+    ${s.origin === 'builtin' ? '<button class="btn sm danger" id="edHide">從清單隱藏</button>' : ''}</div>
+    <div class="bd" id="edHist"></div></div>`;
+  setSeg('edPar', s.npar);
+  $$('#edPar button').forEach(b => b.onclick = () => { s.npar = +b.dataset.v; setSeg('edPar', s.npar); markDirty(); recalcEditor(); });
+  $('#edColloc').onchange = e => { s.colloc = e.target.checked; markDirty(); };
+  $('#edName').oninput = e => { s.name = e.target.value; markDirty(); };
+  $('#edId').oninput = e => { s.id = e.target.value.trim(); markDirty(); };
+  $('#edSecs').oninput = e => { s.sections = e.target.value.split(/[,，、\s]+/).filter(Boolean); markDirty(); };
+  $('#edNote').oninput = e => { s.note = e.target.value; markDirty(); };
+  $('#edSave').onclick = saveDraft;
+  $('#edDiscard').onclick = async () => { if (!ED.dirty || await confirmDlg('放棄修改', '確定放棄目前未儲存的修改？', '放棄', true)) { const id = ED.isNew ? null : ED.id; ED.dirty = false; openEditor(id || (allSets()[0] || {}).id); } };
+  $('#edAddBtn').onclick = addPointsFromText;
+  $('#edExpInp').onclick = () => download(`${s.id}.inp`, E.writeInp(ctrlRows(s)));
+  $('#edExpJson').onclick = exportParamJson;
+  $('#edExpRpt').onclick = () => {
+    try {
+      const rows = ctrlRows(s); const m = E.fit(rows, { npar: s.npar, colloc: s.colloc !== false, compat: S().compat !== false });
+      const html = `<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>參數報告 ${esc(s.name)}</title><style>body{font:13px/1.55 "Microsoft JhengHei",sans-serif;margin:28px;max-width:1000px}h1{font-size:20px}h2{font-size:15px;margin:22px 0 6px;border-bottom:2px solid #1f6f5c}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #c9cec7;padding:3px 7px;text-align:right;font-family:Consolas,monospace}th{background:#eef1ed}td.l{text-align:left;font-family:inherit}.s{color:#4c5650}</style></head><body><h1>轉換參數報告：${esc(s.name)}</h1><p class="s">適用段號：${esc((s.sections || []).join('、') || '—')}　產生時間：${nowStr()}　坐標轉換工具 v${esc(VER.version)}</p>${s.note ? `<p class="s">${esc(s.note)}</p>` : ''}${modelSection(m, rows, 'TWD67', 'TWD97')}</body></html>`;
+      download(`${s.id}_參數報告.html`, html, 'text/html;charset=utf-8');
+    } catch (e) { toast(e.message); }
+  };
+  const rv = $('#edRevert'); if (rv) rv.onclick = async () => { if (await confirmDlg('還原內建版本', '將刪除你對此參數組的所有修改與版本紀錄，確定？', '還原', true)) { delete USER.sets[s.id]; saveUser(); ED.dirty = false; refreshAll(); openEditor(s.id); toast('已還原為內建版本'); } };
+  const dl = $('#edDelete'); if (dl) dl.onclick = async () => { if (await confirmDlg('刪除參數組', `確定刪除「${esc(s.name)}」？此動作無法復原（建議先匯出 JSON 備份）。`, '刪除', true)) { delete USER.sets[s.id]; saveUser(); ED.dirty = false; refreshAll(); openEditor((allSets()[0] || {}).id); } };
+  const hd = $('#edHide'); if (hd) hd.onclick = async () => { if (await confirmDlg('隱藏參數組', `「${esc(s.name)}」將不再顯示於清單（可於「版本與更新 → 清除自訂資料」恢復）。`, '隱藏')) { USER.hidden.push(s.id); saveUser(); ED.dirty = false; refreshAll(); openEditor((allSets()[0] || {}).id); } };
+  const cb = $('#edCmpBuiltin'); if (cb) cb.onclick = () => showDiff('新內建版本', builtinSet(s.id).points, s.points, () => { s.points = clone(builtinSet(s.id).points); markDirty(); renderEditor(); });
+  renderPointTable(); renderHistory();
+}
+function renderPointTable() {
+  const s = ED.draft;
+  const tbl = $('#edTbl');
+  tbl.innerHTML = `<thead><tr><th>用</th><th>點名</th><th class="num">N67</th><th class="num">E67</th><th class="num">N97</th><th class="num">E97</th><th class="num">vN mm</th><th class="num">vE mm</th><th class="num">|v| mm</th><th></th></tr></thead><tbody>` +
+    s.points.map((p, i) => `<tr data-i="${i}" class="${p.on === false ? 'off' : ''}"><td><input type="checkbox" data-k="on" ${p.on !== false ? 'checked' : ''}></td>
+    <td><input type="text" class="name" data-k="name" value="${esc(p.name)}" style="width:90px"></td>
+    ${['n1', 'e1', 'n2', 'e2'].map(k => `<td><input type="text" data-k="${k}" value="${fx(+p[k], 3)}" style="width:118px"></td>`).join('')}
+    <td class="num" data-r="vn"></td><td class="num" data-r="ve"></td><td class="num" data-r="v"></td>
+    <td><button class="btn ghost sm danger" data-del="${i}" title="刪除">✕</button></td></tr>`).join('') + '</tbody>';
+  tbl.querySelectorAll('input').forEach(inp => {
+    inp.onchange = () => {
+      const i = +inp.closest('tr').dataset.i, k = inp.dataset.k, p = s.points[i];
+      if (k === 'on') { p.on = inp.checked; inp.closest('tr').classList.toggle('off', !inp.checked); }
+      else if (k === 'name') p.name = inp.value.trim().slice(0, 8);
+      else { const v = parseFloat(inp.value); if (!isFinite(v)) { inp.value = fx(+p[k], 3); return; } p[k] = v; }
+      markDirty(); recalcEditor();
+    };
+  });
+  tbl.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { s.points.splice(+b.dataset.del, 1); markDirty(); renderPointTable(); });
+  recalcEditor();
+}
+function recalcEditor() {
+  const s = ED.draft, st = $('#edStats'); if (!st) return;
+  const rows = $$('#edTbl tbody tr');
+  rows.forEach(tr => tr.querySelectorAll('[data-r]').forEach(td => td.textContent = ''));
+  try {
+    const on = s.points.map((p, i) => ({ p, i })).filter(x => x.p.on !== false);
+    const fitRows = on.map(x => ({ name: x.p.name, ip: 1, n1: +x.p.n1, e1: +x.p.e1, n2: +x.p.n2, e2: +x.p.e2, _i: x.i }));
+    const m = E.fit(fitRows, { npar: s.npar, colloc: false, compat: S().compat !== false });
+    const thr = Math.max(3 * m.sd0, 0.03);
+    m.residuals.forEach(r => {
+      const tr = rows[r.p._i]; if (!tr) return;
+      const v = Math.hypot(r.vn, r.ve);
+      tr.querySelector('[data-r=vn]').textContent = mm(r.vn); tr.querySelector('[data-r=ve]').textContent = mm(r.ve); tr.querySelector('[data-r=v]').textContent = mm(v);
+      tr.classList.toggle('hl', m.df > 1 && v > thr);
+    });
+    const maxv = Math.max(0, ...m.residuals.map(r => Math.hypot(r.vn, r.ve)));
+    st.innerHTML = `啟用 ${m.nctrl}/${s.points.length} 點 · 自由度 ${m.df} · σ₀ ${m.df > 1 ? fx(m.sd0 * 1000, 1) + ' mm' : '—'} · 最大殘差 ${mm(maxv)} mm` + (m.warnings.length ? ` <span class="chip warn">${esc(m.warnings[0])}</span>` : '');
+  } catch (e) { st.innerHTML = `<span class="chip bad">${esc(e.message)}</span>`; }
+}
+function parsePointLines(text) {
+  const pts = [];
+  text.split(/\r?\n/).forEach(l => {
+    const t = l.trim().split(/[\s,;\t]+/).filter(Boolean); if (t.length < 5) return;
+    let name, nums;
+    if (t.length >= 6 && /^\d$/.test(t[1])) { if (+t[1] >= 7) return; name = t[0]; nums = t.slice(2, 6).map(Number); }
+    else { name = t[0]; nums = t.slice(1, 5).map(Number); }
+    if (nums.some(v => !isFinite(v))) return;
+    pts.push({ name: name.slice(0, 8), ip: 1, n1: nums[0], e1: nums[1], n2: nums[2], e2: nums[3], on: true });
+  });
+  return pts;
+}
+function addPointsFromText() {
+  const s = ED.draft, pts = parsePointLines($('#edAdd').value);
+  if (!pts.length) { $('#edAddInfo').textContent = '沒有可辨識的控制點（需 點名 + 4 個坐標）'; return; }
+  let add = 0, upd = 0;
+  pts.forEach(p => { const k = s.points.findIndex(q => q.name === p.name); if (k >= 0) { s.points[k] = Object.assign(s.points[k], p); upd++; } else { s.points.push(p); add++; } });
+  $('#edAdd').value = ''; $('#edAddInfo').textContent = `新增 ${add} 點、更新 ${upd} 點（尚未儲存）`;
+  markDirty(); renderPointTable();
+}
+async function saveDraft() {
+  const s = ED.draft;
+  if (!s.id) { toast('請輸入代號'); return; }
+  if (ED.isNew && getSet(s.id)) { toast('代號已存在，請換一個'); return; }
+  try { E.fit(ctrlRows(s), { npar: s.npar, colloc: false }); } catch (e) { if (!(await confirmDlg('參數無法解算', esc(e.message) + '<br>仍要儲存？'))) return; }
+  const note = await ask('儲存為新版本', '版本說明（例：新增 HB149 等 5 點已知點）', '');
+  if (note === null) return;
+  const base = builtinSet(s.id);
+  const prev = USER.sets[s.id];
+  const revisions = (prev && prev.revisions) || [];
+  revisions.push({ ts: nowStr(), note: note || '（未填說明）', points: clone(s.points) });
+  USER.sets[s.id] = { id: s.id, name: s.name, sections: s.sections || [], note: s.note || '', npar: s.npar, colloc: s.colloc !== false,
+    points: clone(s.points), revisions, baseHash: base ? ptsHash(base.points) : undefined, savedAt: nowStr() };
+  if (saveUser()) { ED.dirty = false; toast('已儲存'); refreshAll(); openEditor(s.id); }
+}
+function renderHistory() {
+  const s = ED.draft, box = $('#edHist');
+  const items = [];
+  (s.history || []).forEach(h => items.push({ label: '解算 ' + h.label, sub: h.file, points: h.points, kind: '內建歷程' }));
+  if (s.origin !== 'user' && builtinSet(s.id)) items.push({ label: '內建現行版本', sub: builtinSet(s.id).file || '', points: builtinSet(s.id).points, kind: '內建' });
+  (s.revisions || []).forEach(r => items.push({ label: r.ts, sub: r.note, points: r.points, kind: '自訂版本' }));
+  box.innerHTML = items.length ? `<table class="t"><thead><tr><th>版本</th><th>說明</th><th class="num">點數</th><th>類型</th><th></th></tr></thead><tbody>` +
+    items.slice().reverse().map((h, i) => `<tr><td>${esc(h.label)}</td><td class="small">${esc(h.sub)}</td><td class="num">${h.points.length}</td><td><span class="chip">${h.kind}</span></td>
+    <td><button class="btn sm" data-h="${items.length - 1 - i}">比較</button> <button class="btn sm" data-r="${items.length - 1 - i}">載入此版本</button></td></tr>`).join('') + '</tbody></table>' : '<span class="muted">尚無版本紀錄</span>';
+  if (BUILTIN.log && s.origin !== 'user') box.innerHTML += `<details style="margin-top:12px"><summary>參數建立歷程（建立歷程.txt）</summary><pre class="log">${esc(BUILTIN.log)}</pre></details>`;
+  box.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { const h = items[+b.dataset.h]; showDiff(h.label, h.points, s.points, () => { s.points = clone(h.points); markDirty(); renderEditor(); }); });
+  box.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => { const h = items[+b.dataset.r]; if (await confirmDlg('載入版本', `以「${esc(h.label)}」的 ${h.points.length} 點取代目前控制點？（載入後需按「儲存為新版本」才會生效）`, '載入')) { s.points = clone(h.points); markDirty(); renderEditor(); } });
+}
+function diffPoints(a, b) { // a: 舊, b: 目前
+  const A = new Map(a.map(p => [p.name, p])), B = new Map(b.map(p => [p.name, p]));
+  const added = b.filter(p => !A.has(p.name)), removed = a.filter(p => !B.has(p.name)), changed = [], toggled = [];
+  b.forEach(p => { const q = A.get(p.name); if (!q) return; const d = Math.max(...['n1', 'e1', 'n2', 'e2'].map(k => Math.abs(+p[k] - +q[k]))); if (d > 0.0005) changed.push({ p, q, d }); else if ((p.on !== false) !== (q.on !== false)) toggled.push(p); });
+  return { added, removed, changed, toggled };
+}
+function showDiff(label, oldPts, curPts, onLoad) {
+  const d = diffPoints(oldPts, curPts);
+  const li = (arr, f) => arr.length ? '<ul>' + arr.map(f).join('') + '</ul>' : '<p class="muted small">無</p>';
+  const body = `<p class="small muted">「${esc(label)}」（${oldPts.length} 點）→ 目前編輯中（${curPts.length} 點）</p>
+    <h4>目前新增（${d.added.length}）</h4>${li(d.added, p => `<li class="mono">${esc(p.name)}</li>`)}
+    <h4>目前缺少（${d.removed.length}）</h4>${li(d.removed, p => `<li class="mono">${esc(p.name)}</li>`)}
+    <h4>坐標不同（${d.changed.length}）</h4>${li(d.changed, x => `<li class="mono">${esc(x.p.name)}：最大差 ${mm(x.d)} mm</li>`)}
+    <h4>啟用狀態不同（${d.toggled.length}）</h4>${li(d.toggled, p => `<li class="mono">${esc(p.name)}：目前${p.on !== false ? '啟用' : '停用'}</li>`)}`;
+  dlg('版本比較', body, [{ label: '關閉' }, { label: '載入該版本', pri: true, onClick: () => { onLoad(); } }]);
+}
+function exportParamJson() {
+  const s = ED.draft;
+  let model = null;
+  try {
+    const m = E.fit(ctrlRows(s), { npar: s.npar, colloc: s.colloc !== false, compat: S().compat !== false });
+    model = { npar: m.npar, origin: { n: m.nc0, e: m.ec0 }, coefficients: m.X, sigma: m.sig, sd0: m.sd0, df: m.df,
+      formula: m.npar === 4 ? 'N=X0*dN+X1*dE+X2+N0; E=-X1*dN+X0*dE+X3+E0' : 'N=X0*dN+X1*dE+X2+N0; E=X3*dN+X4*dE+X5+E0',
+      collocation: m.colloc ? { covariance: 'C(d)=c*(1-d/a), d<=a, d in km', refs: m.colloc.refs.map(r => ({ name: r.name, n: r.x, e: r.y })),
+        n: { c: m.colloc.n.c, a: m.colloc.n.a, mean: m.colloc.n.ave, weights: m.colloc.n.w }, e: { c: m.colloc.e.c, a: m.colloc.e.a, mean: m.colloc.e.ave, weights: m.colloc.e.w },
+        note: 'correction(P) = mean + Σ C(dist(P,ref_j)) * weight_j，P 為轉換後坐標' } : null };
+  } catch (e) { /* 無法解算仍可匯出點位 */ }
+  const out = { format: 'coord-transfer-params', formatVersion: 1, exported: nowStr(), appVersion: VER.version,
+    set: { id: s.id, name: s.name, sections: s.sections || [], note: s.note || '', npar: s.npar, colloc: s.colloc !== false },
+    points: s.points.map(p => ({ name: p.name, ip: p.ip, n67: +p.n1, e67: +p.e1, n97: +p.n2, e97: +p.e2, enabled: p.on !== false })),
+    revisions: s.revisions || [], model };
+  download(`${s.id}_參數.json`, JSON.stringify(out, null, 2), 'application/json');
+}
+async function importSetFiles(files) {
+  for (const f of files) {
+    const text = await readFileText(f);
+    let set = null;
+    if (/\.json$/i.test(f.name)) {
+      try {
+        const j = JSON.parse(text);
+        if (j.format === 'coord-transfer-params') {
+          set = Object.assign({}, j.set, { points: j.points.map(p => ({ name: p.name, ip: p.ip || 1, n1: p.n67, e1: p.e67, n2: p.n97, e2: p.e97, on: p.enabled !== false })), revisions: j.revisions || [] });
+        } else if (j.format === 'coord-transfer-backup') { await restoreBackup(j); continue; }
+      } catch (e) { toast(f.name + '：JSON 格式錯誤'); continue; }
+    } else {
+      const rows = E.parseInp(text).filter(r => r.ip < 7);
+      if (!rows.length) { toast(f.name + '：找不到控制點'); continue; }
+      const id = f.name.replace(/\.[^.]+$/, '');
+      set = { id, name: id + ' 段', sections: [id], note: `由 ${f.name} 匯入`, npar: rows.length >= 3 ? 6 : 4, colloc: true, points: rows.map(r => ({ name: r.name, ip: r.ip, n1: r.n1, e1: r.e1, n2: r.n2, e2: r.e2, on: true })), revisions: [] };
+    }
+    if (!set) { toast(f.name + '：無法辨識'); continue; }
+    const exist = getSet(set.id);
+    if (exist) {
+      const choice = await dlg('參數組已存在', `「${esc(set.id)}」已存在（${esc(exist.name)}）。要以匯入的 ${set.points.length} 點<b>取代</b>其控制點，或<b>另存為新參數組</b>？`,
+        [{ label: '取消', value: 'cancel' }, { label: '另存新組', value: 'new' }, { label: '載入到現有參數組', pri: true, value: 'replace' }]);
+      if (choice === 'cancel' || choice === null) continue;
+      if (choice === 'new') { set.id = set.id + '-' + rocDate(); openEditor(null, Object.assign({ origin: 'user', history: [], samples: [] }, set)); }
+      else { const d = clone(exist); d.points = set.points; if (set.name) d.name = set.name; openEditor(null, d); ED.isNew = false; }
+      toast('已載入編輯器，確認後請按「儲存為新版本」');
+    } else {
+      openEditor(null, Object.assign({ origin: 'user', history: [], samples: [] }, set));
+      toast('已載入編輯器，確認後請按「儲存為新版本」');
+    }
+  }
+}
+function bindParamsPage() {
+  $('#setSearch').oninput = renderSetList;
+  $('#btnNewSet').onclick = async () => {
+    if (!(await leaveEditor())) return;
+    const id = await ask('新參數組', '代號（建議用段號，例：392）', ''); if (!id) return;
+    if (getSet(id)) { toast('代號已存在'); return; }
+    openEditor(null, { id, name: id + ' 段', sections: [id], note: '', npar: 6, colloc: true, points: [], history: [], samples: [], revisions: [], origin: 'user' });
+  };
+  $('#btnImportSet').onclick = () => $('#importSetFile').click();
+  $('#importSetFile').onchange = async e => { const fs = Array.from(e.target.files); e.target.value = ''; if (await leaveEditor()) importSetFiles(fs); };
+}
+
+/* ---------------- 版本與更新 ---------------- */
+function renderAbout() {
+  const userCount = Object.keys(USER.sets).length;
+  $('#aboutInfo').innerHTML = `<div class="kv"><div>程式版本</div><div><b>v${esc(VER.version)}</b>（${esc(VER.date)}）</div>
+    <div>內建參數庫</div><div>${BUILTIN.sets.length} 組，${BUILTIN.sets.reduce((s, x) => s + x.points.length, 0)} 個控制點（${esc(BUILTIN.built || '')}，#${esc(BUILTIN.hash || '')}）</div>
+    <div>自訂/修改</div><div>${userCount} 組${USER.hidden.length ? `，隱藏 ${USER.hidden.length} 組` : ''}</div>
+    <div>檔案位置</div><div class="small mono" style="word-break:break-all">${esc(decodeURIComponent(location.href))}</div>
+    <div>演算法</div><div class="small">國土測繪中心 TRANSFN1（成大測量系 1993/2001）6/4 參數 + 最小二乘配置，逐步移植並與 t.exe 輸出逐字比對</div></div>`;
+  $('#changelog').innerHTML = (VER.changelog || []).map(c => `<h4>v${esc(c.version)} <span class="muted small">${esc(c.date)}</span></h4><ul>${c.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`).join('');
+  $('#updUrl').value = updUrl(); $('#updUrl').placeholder = VER.updateUrl || 'https://…/latest.json'; $('#updAuto').checked = !!S().updAuto;
+  $('#optCompat').checked = S().compat !== false; $('#optDec').value = String(S().dec || 3); $('#optFar').value = S().far; $('#optTheme').value = S().theme || '';
+  let size = 0; try { size = (localStorage.getItem(LS_KEY) || '').length; } catch (e) { /* */ }
+  $('#storageInfo').textContent = `自訂資料約 ${(size / 1024).toFixed(1)} KB，存於此瀏覽器（${location.protocol === 'file:' ? '本機檔案' : location.host}）。換電腦或換瀏覽器前請先匯出備份。`;
+}
+async function checkUpdate(manual) {
+  const url = updUrl(), st = $('#updStatus');
+  if (!url) { if (manual) st.innerHTML = '<div class="note warn">請先填入更新來源網址。</div>'; return; }
+  if (manual) st.innerHTML = '<div class="note">檢查中…</div>';
+  try {
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    S().lastCheck = Date.now(); saveUser();
+    if (cmpVer(j.version, VER.version) > 0) {
+      $('#updBadge').style.display = 'inline-block'; $('#updBadge').textContent = `有新版本 v${j.version}`;
+      st.innerHTML = `<div class="note ok"><b>有新版本 v${esc(j.version)}</b>（${esc(j.date || '')}）<ul style="margin:6px 0">${(j.notes || []).map(n => `<li>${esc(n)}</li>`).join('')}</ul><button class="btn pri sm" id="btnDoUpd">下載並更新</button></div>`;
+      $('#btnDoUpd').onclick = () => doUpdate(j, url);
+    } else if (manual) st.innerHTML = `<div class="note ok">已是最新版本（v${esc(VER.version)}）。</div>`;
+  } catch (e) { if (manual) st.innerHTML = `<div class="note bad">檢查失敗：${esc(e.message)}。請確認網址可連線且允許跨來源存取（CORS）。</div>`; }
+}
+async function doUpdate(j, manifestUrl) {
+  try {
+    const u = new URL(j.url || j.file, manifestUrl).href;
+    const r = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const html = await r.text();
+    await installHtml(html);
+  } catch (e) { toast('更新失敗：' + e.message, 6000); }
+}
+function htmlVersion(html) { const m = /<meta name="app-version" content="([^"]+)"/.exec(html); return m ? m[1] : null; }
+async function installHtml(html) {
+  if (!/data-app="coord-transfer"/.test(html)) { toast('這不是坐標轉換工具的檔案'); return; }
+  const v = htmlVersion(html) || '?';
+  const newer = cmpVer(v, VER.version);
+  if (newer <= 0 && !(await confirmDlg('版本確認', `檔案版本 v${esc(v)} ${newer === 0 ? '與目前相同' : '比目前舊'}（目前 v${esc(VER.version)}），仍要安裝？`))) return;
+  const r = await saveHtml(html, { overwrite: true });
+  if (r === 'written') { toast('更新完成，重新載入中…'); setTimeout(() => location.reload(), 800); }
+  else if (r === 'downloaded') dlg('已下載新版', `<p>新版 v${esc(v)} 已下載。請用它取代目前的檔案：</p><p class="mono small">${esc(decodeURIComponent(location.pathname.replace(/^\//, '')))}</p><p class="muted small">你的自訂參數存在瀏覽器中，取代檔案後仍會保留（請放在同一台電腦、用同一個瀏覽器開啟）。</p>`);
+}
+function mergedLibrary() {
+  const sets = allSets().map(s => {
+    const hist = (s.history || []).map(h => ({ label: h.label, file: h.file, points: h.points.map(p => [p.name, p.ip, +p.n1, +p.e1, +p.n2, +p.e2]) }));
+    const b0 = s.origin === 'modified' ? builtinSet(s.id) : null;
+    if (b0) hist.push({ label: '修改前內建版本（' + (BUILTIN.built || '') + '）', file: b0.file || '', points: b0.points.map(p => [p.name, p.ip, +p.n1, +p.e1, +p.n2, +p.e2]) });
+    (s.revisions || []).forEach(r => hist.push({ label: r.ts + ' ' + r.note, file: '', points: r.points.filter(p => p.on !== false).map(p => [p.name, p.ip, +p.n1, +p.e1, +p.n2, +p.e2]) }));
+    return { id: s.id, name: s.name, sections: s.sections || [], note: s.note || '', file: s.file || '', npar: s.npar, colloc: s.colloc !== false,
+      points: s.points.filter(p => p.on !== false).map(p => [p.name, p.ip, +p.n1, +p.e1, +p.n2, +p.e2]),
+      samples: (s.samples || []).map(x => [x.name, 8, x.n, x.e]), history: hist };
+  });
+  const lib = { sets, log: BUILTIN.log || '' };
+  lib.hash = fnv(JSON.stringify(lib)); lib.built = new Date().toISOString().slice(0, 10);
+  return lib;
+}
+async function bakeHtml() {
+  const lib = mergedLibrary();
+  const json = JSON.stringify(lib).replace(/<\//g, '<\\/');
+  const re = /(<script type="application\/json" id="lib-data">)[\s\S]*?(<\/script>)/;
+  if (!re.test(SELF_HTML)) { toast('無法定位參數庫區塊'); return; }
+  const html = SELF_HTML.replace(re, (_, a, b) => a + json + b);
+  const choice = await dlg('產生含目前參數庫的 HTML', `<p>將把 ${lib.sets.length} 組參數（含你的修改；停用的控制點不會帶入）寫入新的 HTML。</p><p class="small muted">「覆寫本檔」後，本機的自訂修改會變成內建參數；「下載新檔」適合分享給同事。</p>`,
+    [{ label: '取消', value: null }, { label: '下載新檔', value: 'dl' }, { label: '覆寫本檔', pri: true, value: 'self' }]);
+  if (!choice) return;
+  if (choice === 'dl') { download(`坐標轉換工具_參數${rocDate()}.html`, html, 'text/html;charset=utf-8'); return; }
+  const r = await saveHtml(html, { overwrite: true });
+  if (r === 'written') { USER.sets = {}; USER.hidden = []; saveUser(); toast('已寫入，重新載入中…'); setTimeout(() => location.reload(), 800); }
+}
+function backupObj() { return { format: 'coord-transfer-backup', exported: nowStr(), appVersion: VER.version, user: USER }; }
+async function restoreBackup(j) {
+  if (!j || j.format !== 'coord-transfer-backup' || !j.user) { toast('不是有效的備份檔'); return; }
+  const n = Object.keys(j.user.sets || {}).length;
+  const ch = await dlg('匯入備份', `備份時間 ${esc(j.exported)}，含 ${n} 組自訂參數。`, [{ label: '取消', value: null }, { label: '合併', value: 'merge' }, { label: '完全取代', pri: true, value: 'replace' }]);
+  if (!ch) return;
+  if (ch === 'replace') USER = Object.assign(loadUser(), j.user);
+  else { Object.assign(USER.sets, j.user.sets || {}); USER.hidden = Array.from(new Set(USER.hidden.concat(j.user.hidden || []))); }
+  saveUser(); refreshAll(); toast('已匯入備份');
+}
+function applyTheme() { const t = S().theme; if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); }
+function bindAboutPage() {
+  $('#updUrl').onchange = e => { S().updUrl = e.target.value.trim(); saveUser(); };
+  $('#updAuto').onchange = e => { S().updAuto = e.target.checked; saveUser(); };
+  $('#btnCheckUpd').onclick = () => { S().updUrl = $('#updUrl').value.trim(); saveUser(); checkUpdate(true); };
+  $('#btnUpdFile').onclick = () => $('#updFile').click();
+  $('#updFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (f) installHtml(await f.text()); };
+  $('#btnBakeHtml').onclick = bakeHtml;
+  $('#btnBackup').onclick = () => download(`坐標轉換工具_備份_${rocDate()}.json`, JSON.stringify(backupObj(), null, 1), 'application/json');
+  $('#btnRestore').onclick = () => $('#restoreFile').click();
+  $('#restoreFile').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { restoreBackup(JSON.parse(await f.text())); } catch (x) { toast('備份檔格式錯誤'); } };
+  $('#btnClearUser').onclick = async () => { if (await confirmDlg('清除自訂資料', '將刪除所有自訂/修改的參數組與隱藏設定（計算設定保留）。建議先匯出備份。確定？', '清除', true)) { USER.sets = {}; USER.hidden = []; saveUser(); refreshAll(); toast('已清除'); } };
+  $('#optCompat').onchange = e => { S().compat = e.target.checked; saveUser(); refreshTransHeader(); };
+  $('#optDec').onchange = e => { S().dec = +e.target.value; saveUser(); if (LAST) renderResult(LAST); };
+  $('#optFar').onchange = e => { S().far = +e.target.value || 0; saveUser(); };
+  $('#optTheme').onchange = e => { S().theme = e.target.value; saveUser(); applyTheme(); };
+  $('#updBadge').onclick = () => showPage('pgAbout');
+}
+
+/* ---------------- 主框架 ---------------- */
+function showPage(id) {
+  $$('#mainTabs button').forEach(b => b.classList.toggle('on', b.dataset.page === id));
+  $$('.page').forEach(p => p.classList.toggle('on', p.id === id));
+  if (id === 'pgParams' && !ED.id) openEditor(ui.set || (allSets()[0] || {}).id);
+  if (id === 'pgAbout') renderAbout();
+}
+function refreshAll() { renderSetSelect(); refreshTransHeader(); renderSetList(); renderAbout(); }
+window.addEventListener('beforeunload', e => { if (ED.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function init() {
+  applyTheme();
+  $('#verLabel').textContent = 'v' + VER.version;
+  document.title = '坐標轉換工具 v' + VER.version;
+  $$('#mainTabs button').forEach(b => b.onclick = () => showPage(b.dataset.page));
+  bindTransPage(); bindParamsPage(); bindAboutPage();
+  renderSetSelect();
+  const s0 = getSet(ui.set); if (s0 && USER.ui.npar == null) { ui.npar = s0.npar; ui.colloc = s0.colloc !== false; }
+  refreshTransHeader(); showInTab(); renderSetList(); renderAbout();
+  // 新版首次開啟
+  if (USER.seenVersion && USER.seenVersion !== VER.version) {
+    const c = (VER.changelog || []).filter(x => cmpVer(x.version, USER.seenVersion) > 0);
+    if (c.length) dlg(`已更新至 v${VER.version}`, `<div class="cl">${c.map(x => `<h4>v${esc(x.version)}</h4><ul>${x.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`).join('')}</div>`);
+  }
+  USER.seenVersion = VER.version; saveUser();
+  if (S().updAuto && updUrl() && location.protocol === 'file:' && (!S().lastCheck || Date.now() - S().lastCheck > 86400000)) checkUpdate(false);
+}
+init();
+window.__CT = { Engine, allSets, transformTargets, ctx, makeZip, reportHtml: r => reportHtml(r) }; // 除錯用
+})();
+
+</script>
+</body>
+</html>

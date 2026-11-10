@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><title>引擎比對測試</title>
+<style>body{font:13px/1.5 Consolas,monospace;margin:16px}.ok{color:#080}.ng{color:#c00}pre{background:#f4f4f4;padding:6px;overflow:auto;max-height:240px}</style>
+</head><body><h3>引擎 vs 原程式輸出 逐字比對</h3><div id="log"></div>
+<script>
+/*__ENGINE__*/
+const CASES = __CASES__;
+const norm = s => s.replace(/\r/g, '').replace(/[ \t]+$/gm, '').replace(/\n+$/, '');
+function firstDiff(a, b) {
+  const A = norm(a).split('\n'), B = norm(b).split('\n');
+  for (let i = 0; i < Math.max(A.length, B.length); i++) if (A[i] !== B[i]) return `line ${i + 1}\n ref: ${JSON.stringify(B[i])}\n got: ${JSON.stringify(A[i])}`;
+  return null;
+}
+const results = [];
+for (const c of CASES) {
+  const r = { label: c.label, npar: c.npar, files: {} };
+  try {
+    const rows = Engine.parseInp(c.inp);
+    const m = Engine.fit(rows, { npar: c.npar, colloc: true, compat: true });
+    const f = Engine.legacyFiles(rows, m, 'x');
+    const pairs = [['x.out', c.out], [c.npar === 4 ? 'HELMERT4.OUT' : 'AFFINE6.OUT', c.aff], ['resid.ne', c.resid], ['interp.out', c.interp]];
+    for (const [k, ref] of pairs) { if (!ref) continue; const d = firstDiff(f[k] || '', ref); r.files[k] = d; }
+    // 數值比對 interp.out
+    const refRows = c.interp.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => [l.slice(0, 8).trim(), +l.slice(47, 60), +l.slice(60, 73)]);
+    let maxd = 0;
+    const got = f['interp.out'].split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => [l.slice(0, 8).trim(), +l.slice(47, 60), +l.slice(60, 73)]);
+    refRows.forEach((q, i) => { if (got[i]) maxd = Math.max(maxd, Math.abs(q[1] - got[i][1]), Math.abs(q[2] - got[i][2])); });
+    r.maxd = maxd; r.n = refRows.length;
+  } catch (e) { r.err = String(e); }
+  results.push(r);
+}
+window.RESULTS = results;
+document.getElementById('log').innerHTML = results.map(r => {
+  const bad = Object.entries(r.files).filter(([, d]) => d);
+  const ok = !r.err && !bad.length;
+  return `<div class="${ok ? 'ok' : 'ng'}"><b>${ok ? 'PASS' : 'DIFF'}</b> ${r.label} (${r.npar}參數, ${r.n} 點, 成果最大差 ${(r.maxd*1000||0).toFixed(1)} mm) ${r.err || ''}</div>` +
+    bad.map(([k, d]) => `<pre>${k}: ${d.replace(/</g, '&lt;')}</pre>`).join('');
+}).join('');
+</script></body></html>
